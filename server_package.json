@@ -1,0 +1,16 @@
+{
+  "name": "potree-depth-server",
+  "version": "1.0.0",
+  "description": "Server for Potree depth rendering",
+  "main": "src/server/depth_server.js",
+  "scripts": {
+    "start": "node src/server/depth_server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.0",
+    "canvas": "^2.10.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.1",
+    "ws": "^8.9.0"
+  }
+} 

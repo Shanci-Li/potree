@@ -1,0 +1,2563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Potree Equirectangular Depth Rendering</title>
+	<link rel="stylesheet" type="text/css" href="../build/potree/potree.css">
+	<link rel="stylesheet" type="text/css" href="../libs/jquery-ui/jquery-ui.min.css">
+	<link rel="stylesheet" type="text/css" href="../libs/openlayers3/ol.css">
+	<link rel="stylesheet" type="text/css" href="../libs/spectrum/spectrum.css">
+	<link rel="stylesheet" type="text/css" href="../libs/jstree/themes/mixed/style.css">
+	<style>
+		html, body {
+			width: 100%;
+			height: 100%;
+			margin: 0;
+			overflow: hidden;
+			font-family: Arial, Helvetica, sans-serif;
+			background: #1f2328;
+			color: #202124;
+		}
+
+		#potree_render_area {
+			position: absolute;
+			left: 430px;
+			right: 0;
+			top: 0;
+			bottom: 0;
+		}
+
+		#potree_sidebar_container {
+			display: none;
+		}
+
+		#depth_panel {
+			position: absolute;
+			left: 0;
+			top: 0;
+			bottom: 0;
+			width: 430px;
+			box-sizing: border-box;
+			padding: 14px;
+			overflow: auto;
+			background: #f7f8fa;
+			border-right: 1px solid #c7ccd1;
+			z-index: 10;
+		}
+
+		#depth_panel h1 {
+			font-size: 18px;
+			line-height: 24px;
+			margin: 0 0 14px;
+			font-weight: 600;
+		}
+
+		fieldset {
+			border: 1px solid #d6d9dd;
+			border-radius: 6px;
+			margin: 0 0 12px;
+			padding: 10px;
+			background: #ffffff;
+		}
+
+		legend {
+			font-size: 12px;
+			font-weight: 700;
+			padding: 0 5px;
+			text-transform: uppercase;
+			color: #4b535c;
+		}
+
+		label {
+			display: block;
+			font-size: 12px;
+			font-weight: 600;
+			color: #38404a;
+			margin: 8px 0 4px;
+		}
+
+		input, select, button {
+			box-sizing: border-box;
+			font: inherit;
+		}
+
+		input[type="text"], input[type="number"], select {
+			width: 100%;
+			height: 30px;
+			padding: 4px 7px;
+			border: 1px solid #b9c0c7;
+			border-radius: 4px;
+			background: #ffffff;
+			color: #202124;
+		}
+
+		input[type="file"] {
+			width: 100%;
+			font-size: 12px;
+		}
+
+		button {
+			height: 32px;
+			border: 1px solid #1f5f9e;
+			border-radius: 4px;
+			background: #256fb8;
+			color: #ffffff;
+			font-weight: 700;
+			cursor: pointer;
+		}
+
+		button.secondary {
+			border-color: #aab2bb;
+			background: #ffffff;
+			color: #25303b;
+		}
+
+		button:disabled {
+			cursor: default;
+			opacity: 0.65;
+		}
+
+		.row {
+			display: grid;
+			grid-template-columns: repeat(3, 1fr);
+			gap: 8px;
+		}
+
+		.row.two {
+			grid-template-columns: repeat(2, 1fr);
+		}
+
+		.row .span-two {
+			grid-column: span 2;
+		}
+
+		.actions {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 8px;
+			margin-top: 10px;
+		}
+
+		.actions.single {
+			grid-template-columns: 1fr;
+		}
+
+		.meta-line {
+			min-height: 18px;
+			margin-top: 8px;
+			font-size: 12px;
+			line-height: 18px;
+			color: #56616d;
+		}
+
+		.classification-list {
+			max-height: 180px;
+			overflow: auto;
+			margin-top: 8px;
+			padding: 6px;
+			border: 1px solid #d6d9dd;
+			border-radius: 4px;
+			background: #fbfcfd;
+		}
+
+		.classification-row {
+			display: grid;
+			grid-template-columns: auto 18px 1fr;
+			align-items: center;
+			gap: 7px;
+			min-height: 24px;
+			font-size: 12px;
+		}
+
+		.classification-row input {
+			width: auto;
+		}
+
+		.classification-swatch {
+			width: 14px;
+			height: 14px;
+			border: 1px solid #9aa3ad;
+			border-radius: 3px;
+		}
+
+		.inline-check {
+			display: flex;
+			align-items: center;
+			gap: 7px;
+			font-size: 12px;
+			font-weight: 600;
+			color: #38404a;
+			margin-top: 8px;
+		}
+
+		.inline-check input {
+			width: auto;
+		}
+
+		#renderDepth, #saveDepth {
+			height: 38px;
+			margin-top: 4px;
+		}
+
+		#depthPreview {
+			display: block;
+			width: 100%;
+			height: auto;
+			min-height: 120px;
+			background: #0b0d10;
+			border: 1px solid #b9c0c7;
+			border-radius: 4px;
+		}
+
+		#status {
+			min-height: 18px;
+			margin-top: 8px;
+			font-size: 12px;
+			line-height: 18px;
+			color: #39424e;
+		}
+
+		#status.error {
+			color: #a32828;
+		}
+
+		#progressOuter {
+			height: 8px;
+			margin-top: 8px;
+			border-radius: 8px;
+			background: #d8dde3;
+			overflow: hidden;
+		}
+
+		#progressBar {
+			height: 100%;
+			width: 0%;
+			background: #256fb8;
+			transition: width 120ms linear;
+		}
+
+		#batchProgressOuter {
+			height: 8px;
+			margin-top: 8px;
+			border-radius: 8px;
+			background: #d8dde3;
+			overflow: hidden;
+		}
+
+		#batchProgressBar {
+			height: 100%;
+			width: 0%;
+			background: #4b8f4f;
+			transition: width 120ms linear;
+		}
+
+		#batchLog {
+			max-height: 120px;
+			overflow: auto;
+			margin-top: 8px;
+			padding: 6px;
+			border: 1px solid #d6d9dd;
+			border-radius: 4px;
+			background: #fbfcfd;
+			font-size: 12px;
+			line-height: 16px;
+			white-space: pre-wrap;
+		}
+	</style>
+</head>
+<body>
+	<div id="depth_panel">
+		<h1>Equirectangular Depth Rendering</h1>
+
+		<fieldset>
+			<legend>Point Cloud</legend>
+			<label for="pointcloudUrl">Asset URL</label>
+			<input id="pointcloudUrl" type="text" value="https://storage-kubernetes.iict-heig-vd.in:9000/nearai/data/acquisitions/Vevey/06_point_clouds/potree/metadata.json" placeholder="../pointclouds/example/metadata.json">
+			<div class="actions">
+				<button id="loadPointCloud">Load</button>
+				<button id="fitPointCloud" class="secondary">Fit View</button>
+			</div>
+		</fieldset>
+
+		<fieldset>
+			<legend>Classification Filter</legend>
+			<div class="actions">
+				<button id="selectAllClassifications" class="secondary" disabled>Select All</button>
+				<button id="clearClassifications" class="secondary" disabled>Clear</button>
+			</div>
+			<div class="actions single">
+				<button id="invertClassifications" class="secondary" disabled>Invert Selection</button>
+			</div>
+			<label for="classificationIndexInput">Class indices</label>
+			<input id="classificationIndexInput" type="text" placeholder="All classes, or 2,6,9-12">
+			<div class="actions single">
+				<button id="applyClassificationIndices" class="secondary" disabled>Apply Class Indices</button>
+			</div>
+			<div id="classificationList" class="classification-list">Load a point cloud with classification data.</div>
+			<div id="classificationInfo" class="meta-line">No classification filter active</div>
+		</fieldset>
+
+		<fieldset>
+			<legend>Camera Pose</legend>
+			<div class="row">
+				<div>
+					<label for="posX">X</label>
+					<input id="posX" type="number" step="0.001" value="0">
+				</div>
+				<div>
+					<label for="posY">Y</label>
+					<input id="posY" type="number" step="0.001" value="0">
+				</div>
+				<div>
+					<label for="posZ">Z</label>
+					<input id="posZ" type="number" step="0.001" value="0">
+				</div>
+			</div>
+			<div class="row">
+				<div>
+					<label for="yaw">Yaw / Course (deg)</label>
+					<input id="yaw" type="number" step="0.001" value="0">
+				</div>
+				<div>
+					<label for="pitch">Pitch (deg)</label>
+					<input id="pitch" type="number" step="0.001" value="0">
+				</div>
+				<div>
+					<label for="roll">Roll (deg)</label>
+					<input id="roll" type="number" step="0.001" value="0">
+				</div>
+			</div>
+			<label for="poseOrientationMode">Orientation convention</label>
+			<select id="poseOrientationMode">
+				<option value="yawPitchRoll">Viewer yaw / pitch / roll (degrees)</option>
+				<option value="potree360">Potree 360 course / pitch / roll (degrees)</option>
+			</select>
+			<div id="poseInfo" class="meta-line">Pose source: manual - Viewer yaw / pitch / roll (degrees)</div>
+			<div class="actions">
+				<button id="useCurrentView" class="secondary">Copy From Viewer</button>
+				<button id="applyPose" class="secondary">Apply To Viewer</button>
+			</div>
+		</fieldset>
+
+		<fieldset>
+			<legend>Coordinates</legend>
+			<label for="coordsBaseUrl">360 image folder URL</label>
+			<input id="coordsBaseUrl" type="text" value="https://storage-kubernetes.iict-heig-vd.in:9000/nearai/data/acquisitions/Vevey/01_images" placeholder="../resources/pointclouds/example/360">
+			<div class="actions">
+				<button id="loadCoordinatesUrl" class="secondary">Load 360 Coordinates</button>
+			</div>
+			<label class="inline-check" for="legacyPotreePaths">
+				<input id="legacyPotreePaths" type="checkbox">
+				Use legacy pano/coordinates.txt layout
+			</label>
+			<label for="coordsFile">Local coordinates.txt</label>
+			<input id="coordsFile" type="file" accept=".txt,.csv,.tsv">
+			<div class="row">
+				<div>
+					<label for="poseIndex">Index</label>
+					<input id="poseIndex" type="number" min="0" step="1" value="0" disabled>
+				</div>
+				<div class="span-two">
+					<label for="poseSelect">Pose</label>
+					<select id="poseSelect" disabled>
+						<option value="">No coordinates loaded</option>
+					</select>
+				</div>
+			</div>
+			<div id="coordinateInfo" class="meta-line">No coordinates loaded</div>
+			<label class="inline-check" for="transformCoordinates">
+				<input id="transformCoordinates" type="checkbox">
+				Transform lon/lat using point-cloud projection
+			</label>
+		</fieldset>
+
+		<fieldset>
+			<legend>Point Rendering</legend>
+			<div class="row">
+				<div>
+					<label for="renderPointSize">Size</label>
+					<input id="renderPointSize" type="number" min="0.01" step="0.01" value="1">
+				</div>
+				<div>
+					<label for="renderMinPointSize">Minimum</label>
+					<input id="renderMinPointSize" type="number" min="0" step="0.01" value="2">
+				</div>
+				<div>
+					<label for="renderMaxPointSize">Maximum</label>
+					<input id="renderMaxPointSize" type="number" min="0.01" step="0.01" value="50">
+				</div>
+			</div>
+		</fieldset>
+
+		<fieldset>
+			<legend>Output</legend>
+			<div class="row two">
+				<div>
+					<label for="outputWidth">Width</label>
+					<input id="outputWidth" type="number" min="16" step="1" value="8000">
+				</div>
+				<div>
+					<label for="outputHeight">Height</label>
+					<input id="outputHeight" type="number" min="8" step="1" value="4000">
+				</div>
+			</div>
+			<div class="row two">
+				<div>
+					<label for="cameraNear">Near</label>
+					<input id="cameraNear" type="number" min="0.001" step="0.001" value="0.1">
+				</div>
+				<div>
+					<label for="cameraFar">Far</label>
+					<input id="cameraFar" type="number" min="1" step="1" value="1000000">
+				</div>
+			</div>
+			<div class="row two">
+				<div>
+					<label for="warmupFrames">Load Frames</label>
+					<input id="warmupFrames" type="number" min="1" max="120" step="1" value="8">
+				</div>
+				<div>
+					<label for="pointBudget">Point Budget</label>
+					<input id="pointBudget" type="number" min="100000" step="100000" value="10000000">
+				</div>
+			</div>
+			<label for="outputPath">Output path / file name</label>
+			<input id="outputPath" type="text" value="depth_map.tif" placeholder="depth_map.tif">
+			<div class="actions">
+				<button id="renderDepth">Render Depth</button>
+				<button id="saveDepth" class="secondary" disabled>Save TIFF</button>
+			</div>
+			<div id="progressOuter"><div id="progressBar"></div></div>
+			<div id="status">Ready</div>
+		</fieldset>
+
+		<fieldset>
+			<legend>Batch</legend>
+			<div class="row two">
+				<div>
+					<label for="batchStartIndex">Start Index</label>
+					<input id="batchStartIndex" type="number" min="0" step="1" placeholder="0">
+				</div>
+				<div>
+					<label for="batchEndIndex">End Index</label>
+					<input id="batchEndIndex" type="number" min="0" step="1" placeholder="last">
+				</div>
+			</div>
+			<label class="inline-check" for="batchOverwrite">
+				<input id="batchOverwrite" type="checkbox">
+				Overwrite existing TIFFs
+			</label>
+			<div class="actions">
+				<button id="selectBatchFolder" class="secondary">Select Save Folder</button>
+				<button id="startBatchRender">Start Batch</button>
+			</div>
+			<div class="actions single">
+				<button id="cancelBatchRender" class="secondary" disabled>Cancel Batch</button>
+			</div>
+			<label class="inline-check" for="useBatchCoordinator">
+				<input id="useBatchCoordinator" type="checkbox">
+				Use local multi-GPU coordinator
+			</label>
+			<label for="batchCoordinatorUrl">Coordinator URL</label>
+			<input id="batchCoordinatorUrl" type="text" value="http://127.0.0.1:3100">
+			<label for="batchOutputDir">Coordinator output directory</label>
+			<input id="batchOutputDir" type="text" placeholder="/data/depth_output">
+			<div class="row two">
+				<div>
+					<label for="batchGpuIds">GPU IDs</label>
+					<input id="batchGpuIds" type="text" placeholder="0,1">
+				</div>
+				<div>
+					<label for="batchWorkersPerGpu">Workers / GPU</label>
+					<input id="batchWorkersPerGpu" type="number" min="1" step="1" value="1">
+				</div>
+			</div>
+			<div id="batchProgressOuter"><div id="batchProgressBar"></div></div>
+			<div id="batchStatus" class="meta-line">No batch running</div>
+			<div id="batchLog">Batch log is empty.</div>
+		</fieldset>
+
+		<fieldset>
+			<legend>Preview</legend>
+			<canvas id="depthPreview" width="512" height="256"></canvas>
+		</fieldset>
+	</div>
+
+	<div id="potree_render_area"></div>
+
+	<script src="../libs/jquery/jquery-3.1.1.min.js"></script>
+	<script src="../libs/spectrum/spectrum.js"></script>
+	<script src="../libs/jquery-ui/jquery-ui.min.js"></script>
+	<script src="../libs/other/BinaryHeap.js"></script>
+	<script src="../libs/tween/tween.min.js"></script>
+	<script src="../libs/d3/d3.js"></script>
+	<script src="../libs/proj4/proj4.js"></script>
+	<script src="../libs/openlayers3/ol.js"></script>
+	<script src="../libs/i18next/i18next.js"></script>
+	<script src="../libs/jstree/jstree.js"></script>
+	<script src="../build/potree/potree.js"></script>
+
+	<script type="module">
+		import * as THREE from "../libs/three.js/build/three.module.js";
+
+		const faceDefinitions = [
+			{name: "posX", forward: new THREE.Vector3(1, 0, 0), up: new THREE.Vector3(0, 0, 1)},
+			{name: "negX", forward: new THREE.Vector3(-1, 0, 0), up: new THREE.Vector3(0, 0, 1)},
+			{name: "posY", forward: new THREE.Vector3(0, 1, 0), up: new THREE.Vector3(0, 0, 1)},
+			{name: "negY", forward: new THREE.Vector3(0, -1, 0), up: new THREE.Vector3(0, 0, 1)},
+			{name: "posZ", forward: new THREE.Vector3(0, 0, 1), up: new THREE.Vector3(0, -1, 0)},
+			{name: "negZ", forward: new THREE.Vector3(0, 0, -1), up: new THREE.Vector3(0, 1, 0)},
+		];
+
+		for(const face of faceDefinitions){
+			face.right = new THREE.Vector3().crossVectors(face.forward, face.up).normalize();
+		}
+
+		const faceByName = new Map(faceDefinitions.map(face => [face.name, face]));
+		const POTREE_360_ROLL_OFFSET_DEG = 90;
+		const POTREE_360_COURSE_OFFSET_DEG = 90;
+		const POTREE_360_CAMERA_PITCH_OFFSET_DEG = -90;
+		const tempDirection = new THREE.Vector3();
+		let viewer = null;
+		let currentPointcloud = null;
+		let currentPointcloudUrl = null;
+		let coordinateRows = [];
+		let currentCoordinatesText = "";
+		let selectedCoordinateIndex = -1;
+		let currentPoseOrientationMode = "yawPitchRoll";
+		let currentPoseSourceLabel = "manual";
+		let lastRenderedDepth = null;
+		let renderInProgress = false;
+		let batchOutputDirectoryHandle = null;
+		let batchInProgress = false;
+		let batchCancelRequested = false;
+		let batchCoordinatorJob = null;
+
+		function initViewer(){
+			viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
+			viewer.setEDLEnabled(false);
+			viewer.setFOV(60);
+			viewer.setPointBudget(10 * 1000 * 1000);
+			viewer.setDescription("Equirectangular depth map renderer");
+			viewer.loadSettingsFromURL();
+
+			viewer.loadGUI(() => {
+				viewer.setLanguage("en");
+			});
+		}
+
+		function setStatus(message, isError){
+			const status = document.getElementById("status");
+			status.textContent = message;
+			status.classList.toggle("error", !!isError);
+		}
+
+		function setProgress(percent){
+			document.getElementById("progressBar").style.width = `${Math.max(0, Math.min(100, percent))}%`;
+		}
+
+		function readNumber(id){
+			const value = Number(document.getElementById(id).value);
+			if(!Number.isFinite(value)){
+				throw new Error(`Invalid number: ${id}`);
+			}
+			return value;
+		}
+
+		function applyPointRenderingSettings(){
+			const size = Math.max(0.01, readNumber("renderPointSize"));
+			const minSize = Math.max(0, readNumber("renderMinPointSize"));
+			const maxSize = Math.max(minSize, readNumber("renderMaxPointSize"));
+
+			for(const pointcloud of viewer.scene.pointclouds){
+				const material = pointcloud.material;
+				material.size = size;
+				material.minSize = minSize;
+				material.maxSize = maxSize;
+				material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
+				material.shape = Potree.PointShape.CIRCLE;
+			}
+		}
+
+		function clamp01(value){
+			return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
+		}
+
+		function pointcloudHasClassification(pointcloud){
+			return !!(pointcloud && pointcloud.getAttribute && pointcloud.getAttribute("classification"));
+		}
+
+		function classificationAttributeRange(pointcloud){
+			if(!pointcloudHasClassification(pointcloud)){
+				return null;
+			}
+
+			const attribute = pointcloud.getAttribute("classification");
+			if(!attribute || !attribute.range || attribute.range.length < 2){
+				return null;
+			}
+
+			const minValue = Array.isArray(attribute.range[0]) ? attribute.range[0][0] : attribute.range[0];
+			const maxValue = Array.isArray(attribute.range[1]) ? attribute.range[1][0] : attribute.range[1];
+			const min = Math.max(0, Math.floor(Number(minValue)));
+			const max = Math.min(255, Math.ceil(Number(maxValue)));
+
+			if(!Number.isFinite(min) || !Number.isFinite(max) || max < min){
+				return null;
+			}
+
+			return {min, max};
+		}
+
+		function defaultClassificationEntry(){
+			return {visible: true, name: "default", color: [0.3, 0.6, 0.6, 0.5]};
+		}
+
+		function cloneClassificationColor(color){
+			const source = Array.isArray(color) ? color : defaultClassificationEntry().color;
+			return [
+				clamp01(source[0]),
+				clamp01(source[1]),
+				clamp01(source[2]),
+				Number.isFinite(source[3]) ? clamp01(source[3]) : 1,
+			];
+		}
+
+		function ensureDefaultClassificationEntry(){
+			if(!viewer.classifications.DEFAULT){
+				viewer.classifications.DEFAULT = defaultClassificationEntry();
+			}
+
+			viewer.classifications.DEFAULT.color = cloneClassificationColor(viewer.classifications.DEFAULT.color);
+
+			if(typeof viewer.classifications.DEFAULT.visible !== "boolean"){
+				viewer.classifications.DEFAULT.visible = true;
+			}
+
+			return viewer.classifications.DEFAULT;
+		}
+
+		function ensureClassificationEntry(code){
+			const key = String(code);
+			if(viewer.classifications[key]){
+				const classification = viewer.classifications[key];
+				classification.color = cloneClassificationColor(classification.color || ensureDefaultClassificationEntry().color);
+				if(typeof classification.visible !== "boolean"){
+					classification.visible = true;
+				}
+				return classification;
+			}
+
+			const fallback = viewer.classifications[String(Number(code) % 32)] || ensureDefaultClassificationEntry();
+			viewer.classifications[key] = {
+				visible: fallback.visible !== false,
+				name: `class ${code}`,
+				color: cloneClassificationColor(fallback.color),
+			};
+
+			return viewer.classifications[key];
+		}
+
+		function classificationColorToCss(color){
+			const rgba = cloneClassificationColor(color);
+			const r = Math.round(255 * clamp01(rgba[0]));
+			const g = Math.round(255 * clamp01(rgba[1]));
+			const b = Math.round(255 * clamp01(rgba[2]));
+			const a = rgba.length > 3 ? clamp01(rgba[3]) : 1;
+
+			return `rgba(${r}, ${g}, ${b}, ${a})`;
+		}
+
+		function classificationCodesForPointcloud(pointcloud){
+			const codes = new Set();
+			const range = classificationAttributeRange(pointcloud);
+
+			if(range && range.max - range.min <= 255){
+				for(let code = range.min; code <= range.max; code++){
+					codes.add(code);
+				}
+			}else{
+				for(const key of Object.keys(viewer.classifications || {})){
+					if(key === "DEFAULT"){
+						continue;
+					}
+
+					const code = Number(key);
+					if(Number.isInteger(code) && code >= 0 && code <= 255){
+						codes.add(code);
+					}
+				}
+			}
+
+			return Array.from(codes).sort((a, b) => a - b);
+		}
+
+		function setClassificationButtonsEnabled(enabled){
+			for(const id of ["selectAllClassifications", "clearClassifications", "invertClassifications", "applyClassificationIndices"]){
+				document.getElementById(id).disabled = !enabled;
+			}
+		}
+
+		function syncClassificationMaterials(){
+			if(!viewer){
+				return;
+			}
+
+			for(const pointcloud of viewer.scene.pointclouds){
+				if(!pointcloud.material){
+					continue;
+				}
+
+				pointcloud.material.classification = viewer.classifications;
+				if(typeof pointcloud.material.recomputeClassification === "function"){
+					pointcloud.material.recomputeClassification();
+				}
+			}
+		}
+
+		function invalidateRenderedDepth(message){
+			lastRenderedDepth = null;
+			if(!renderInProgress){
+				setRenderButtonsBusy(false);
+			}
+			if(message){
+				setStatus(message);
+			}
+		}
+
+		function applyClassificationFilterChange(message){
+			if(viewer){
+				viewer.dispatchEvent({type: "classification_visibility_changed", viewer});
+			}
+			syncClassificationMaterials();
+			renderClassificationFilter();
+			invalidateRenderedDepth(message);
+		}
+
+		function setClassificationVisibility(code, visible){
+			const classification = code === "DEFAULT"
+				? ensureDefaultClassificationEntry()
+				: ensureClassificationEntry(code);
+
+			if(classification.visible === visible){
+				return;
+			}
+
+			classification.visible = visible;
+			applyClassificationFilterChange("Classification filter changed; render depth again.");
+		}
+
+		function renderClassificationFilter(){
+			const list = document.getElementById("classificationList");
+			const info = document.getElementById("classificationInfo");
+			const pointcloud = currentPointcloud || (viewer && viewer.scene.pointclouds[0]);
+
+			if(!pointcloud){
+				list.textContent = "Load a point cloud with classification data.";
+				info.textContent = "No classification filter active";
+				setClassificationButtonsEnabled(false);
+				return;
+			}
+
+			if(!pointcloudHasClassification(pointcloud)){
+				list.textContent = "Loaded point cloud has no classification attribute.";
+				info.textContent = "No classification filter active";
+				setClassificationButtonsEnabled(false);
+				return;
+			}
+
+			const codes = classificationCodesForPointcloud(pointcloud);
+			for(const code of codes){
+				ensureClassificationEntry(code);
+			}
+			ensureDefaultClassificationEntry();
+
+			list.innerHTML = "";
+			setClassificationButtonsEnabled(true);
+
+			const addRow = (key, classification, label) => {
+				const row = document.createElement("label");
+				row.className = "classification-row";
+
+				const checkbox = document.createElement("input");
+				checkbox.type = "checkbox";
+				checkbox.checked = classification.visible !== false;
+				checkbox.addEventListener("change", event => {
+					setClassificationVisibility(key, event.target.checked);
+				});
+
+				const swatch = document.createElement("span");
+				swatch.className = "classification-swatch";
+				swatch.style.background = classificationColorToCss(classification.color);
+
+				const text = document.createElement("span");
+				text.textContent = label;
+
+				row.appendChild(checkbox);
+				row.appendChild(swatch);
+				row.appendChild(text);
+				list.appendChild(row);
+			};
+
+			let visibleCount = 0;
+			for(const code of codes){
+				const classification = ensureClassificationEntry(code);
+				if(classification.visible !== false){
+					visibleCount++;
+				}
+				addRow(String(code), classification, `${code}: ${classification.name || `class ${code}`}`);
+			}
+
+			const defaultClassification = ensureDefaultClassificationEntry();
+			addRow("DEFAULT", defaultClassification, `DEFAULT: ${defaultClassification.name || "other classes"}`);
+
+			const totalCount = codes.length + 1;
+			if(defaultClassification.visible !== false){
+				visibleCount++;
+			}
+			info.textContent = `${visibleCount} of ${totalCount} classification entries visible`;
+		}
+
+		function setAllClassificationsVisibility(visible){
+			const pointcloud = currentPointcloud || (viewer && viewer.scene.pointclouds[0]);
+			if(!pointcloudHasClassification(pointcloud)){
+				return;
+			}
+
+			for(const code of classificationCodesForPointcloud(pointcloud)){
+				ensureClassificationEntry(code).visible = visible;
+			}
+			ensureDefaultClassificationEntry().visible = visible;
+			applyClassificationFilterChange("Classification filter changed; render depth again.");
+		}
+
+		function invertClassificationsVisibility(){
+			const pointcloud = currentPointcloud || (viewer && viewer.scene.pointclouds[0]);
+			if(!pointcloudHasClassification(pointcloud)){
+				return;
+			}
+
+			for(const code of classificationCodesForPointcloud(pointcloud)){
+				const classification = ensureClassificationEntry(code);
+				classification.visible = classification.visible === false;
+			}
+
+			const defaultClassification = ensureDefaultClassificationEntry();
+			defaultClassification.visible = defaultClassification.visible === false;
+			applyClassificationFilterChange("Classification filter changed; render depth again.");
+		}
+
+		function parseClassificationSelection(spec){
+			const trimmed = String(spec || "").trim();
+			if(trimmed.length === 0){
+				return null;
+			}
+
+			const selected = new Set();
+			for(const rawPart of trimmed.split(",")){
+				const part = rawPart.trim();
+				if(part.length === 0){
+					continue;
+				}
+
+				const rangeMatch = part.match(/^(\d+)\s*-\s*(\d+)$/);
+				if(rangeMatch){
+					const start = Number(rangeMatch[1]);
+					const end = Number(rangeMatch[2]);
+					if(end < start || start < 0 || end > 255){
+						throw new Error(`Invalid classification range: ${part}`);
+					}
+					for(let code = start; code <= end; code++){
+						selected.add(code);
+					}
+					continue;
+				}
+
+				if(!/^\d+$/.test(part)){
+					throw new Error(`Invalid classification code: ${part}`);
+				}
+
+				const code = Number(part);
+				if(code < 0 || code > 255){
+					throw new Error(`Classification code out of range: ${code}`);
+				}
+				selected.add(code);
+			}
+
+			return selected;
+		}
+
+		function setClassificationSelectionFromString(spec, message = "Classification filter changed; render depth again."){
+			const pointcloud = currentPointcloud || (viewer && viewer.scene.pointclouds[0]);
+			if(!pointcloudHasClassification(pointcloud)){
+				throw new Error("Load a point cloud with classification data before applying class indices");
+			}
+
+			const selected = parseClassificationSelection(spec);
+			const codes = classificationCodesForPointcloud(pointcloud);
+			if(selected === null){
+				for(const code of codes){
+					ensureClassificationEntry(code).visible = true;
+				}
+				ensureDefaultClassificationEntry().visible = true;
+			}else{
+				for(const code of selected){
+					ensureClassificationEntry(code);
+				}
+
+				const allCodes = new Set([...codes, ...selected]);
+				for(const code of allCodes){
+					ensureClassificationEntry(code).visible = selected.has(code);
+				}
+				ensureDefaultClassificationEntry().visible = false;
+			}
+
+			document.getElementById("classificationIndexInput").value = String(spec || "").trim();
+			applyClassificationFilterChange(message);
+		}
+
+		function visibleClassificationSpec(){
+			const pointcloud = currentPointcloud || (viewer && viewer.scene.pointclouds[0]);
+			if(!pointcloudHasClassification(pointcloud)){
+				return "";
+			}
+
+			const visible = classificationCodesForPointcloud(pointcloud)
+				.filter(code => ensureClassificationEntry(code).visible !== false);
+			return visible.join(",");
+		}
+
+		function classificationSpecForBatch(){
+			const explicit = document.getElementById("classificationIndexInput").value.trim();
+			if(explicit){
+				return explicit;
+			}
+
+			const pointcloud = currentPointcloud || (viewer && viewer.scene.pointclouds[0]);
+			if(!pointcloudHasClassification(pointcloud)){
+				return "";
+			}
+
+			const codes = classificationCodesForPointcloud(pointcloud);
+			const allCodesVisible = codes.every(code => ensureClassificationEntry(code).visible !== false);
+			const defaultVisible = ensureDefaultClassificationEntry().visible !== false;
+			return allCodesVisible && defaultVisible ? "" : visibleClassificationSpec();
+		}
+
+
+		function basename(path){
+			const clean = String(path || "").trim().replace(/\\/g, "/");
+			const name = clean.split("/").filter(Boolean).pop();
+			return name || "depth_map.tif";
+		}
+
+		function pointcloudNameFromUrl(url){
+			const clean = url.split(/[?#]/)[0].replace(/\/+$/, "");
+			const parts = clean.split("/");
+			return parts[parts.length - 2] || parts[parts.length - 1] || "pointcloud";
+		}
+
+		function clearPointClouds(){
+			for(const pointcloud of viewer.scene.pointclouds.slice()){
+				viewer.scene.scenePointCloud.remove(pointcloud);
+			}
+
+			viewer.scene.pointclouds.length = 0;
+			currentPointcloud = null;
+			currentPointcloudUrl = null;
+			renderClassificationFilter();
+		}
+
+		function withTimeout(promise, milliseconds, message){
+			let timeout = null;
+			const timer = new Promise((resolve, reject) => {
+				timeout = setTimeout(() => reject(new Error(message)), milliseconds);
+			});
+
+			return Promise.race([promise, timer]).finally(() => clearTimeout(timeout));
+		}
+
+		async function validatePointCloudUrl(url){
+			let resolved = null;
+			try{
+				resolved = new URL(url, window.location.href);
+			}catch(error){
+				throw new Error("Point cloud URL is not valid");
+			}
+
+			const supported = /(metadata\.json|ept\.json|cloud\.js|\.copc\.laz|\.vpc)([?#].*)?$/i;
+			if(!supported.test(resolved.href)){
+				throw new Error("Point cloud URL must point to metadata.json, ept.json, cloud.js, COPC LAZ, or VPC data");
+			}
+
+			let response = null;
+			try{
+				response = await withTimeout(
+					fetch(resolved.href, {method: "GET", cache: "no-store"}),
+					15000,
+					"Timed out while validating point cloud URL"
+				);
+			}catch(error){
+				throw new Error(`Unable to fetch point cloud metadata: ${error.message || error}`);
+			}
+
+			if(response.body && response.body.cancel){
+				try{
+					await response.body.cancel();
+				}catch(error){
+					// The validation request only needs headers. Ignore body-cancel failures.
+				}
+			}
+
+			if(!response.ok){
+				throw new Error(`Point cloud metadata request failed with HTTP ${response.status}`);
+			}
+
+			return resolved.href;
+		}
+
+		async function loadPointCloudAsset(){
+			const url = document.getElementById("pointcloudUrl").value.trim();
+			if(url.length === 0){
+				throw new Error("Point cloud URL is required");
+			}
+
+			setStatus("Validating point cloud...");
+			setProgress(0);
+			const resolvedUrl = await validatePointCloudUrl(url);
+
+			setStatus("Loading point cloud...");
+			setProgress(10);
+			const event = await withTimeout(
+				Potree.loadPointCloud(resolvedUrl, pointcloudNameFromUrl(resolvedUrl)),
+				30000,
+				"Timed out while loading point cloud"
+			);
+
+			if(!event || !event.pointcloud){
+				throw new Error("Potree did not return a point cloud for the requested URL");
+			}
+
+			clearPointClouds();
+			const pointcloud = event.pointcloud;
+			if(!pointcloud.pcoGeometry || !pointcloud.pcoGeometry.boundingBox || !pointcloud.pcoGeometry.pointAttributes){
+				throw new Error("Loaded point cloud is missing required geometry metadata");
+			}
+
+			const material = pointcloud.material;
+			material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
+			material.shape = Potree.PointShape.CIRCLE;
+
+			viewer.scene.addPointCloud(pointcloud);
+			currentPointcloud = pointcloud;
+			currentPointcloudUrl = url;
+			applyPointRenderingSettings();
+			syncClassificationMaterials();
+			renderClassificationFilter();
+			viewer.fitToScreen();
+			useCurrentViewPose();
+			setStatus(`Loaded ${pointcloud.name}`);
+			setProgress(100);
+
+			return pointcloud;
+		}
+
+		function getWgs84ToPointcloudTransform(required = false){
+			const projection = viewer && viewer.getProjection ? viewer.getProjection() : null;
+
+			if(!projection || typeof proj4 === "undefined"){
+				if(required){
+					throw new Error("Load a point cloud with projection metadata before using Potree 360 coordinates");
+				}
+
+				return null;
+			}
+
+			proj4.defs("WGS84", "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs");
+			proj4.defs("pointcloud", projection);
+
+			return proj4("WGS84", "pointcloud");
+		}
+
+		function transformPositionIfNeeded(row){
+			const x = row.x;
+			const y = row.y;
+			const z = row.z;
+			const shouldTransform = document.getElementById("transformCoordinates").checked;
+
+			if(!shouldTransform){
+				return [x, y, z];
+			}
+
+			const transform = getWgs84ToPointcloudTransform(true);
+			if(!transform){
+				return [x, y, z];
+			}
+
+			const xy = transform.forward([x, y]);
+
+			return [xy[0], xy[1], z];
+		}
+
+		function poseQuaternionFromYawPitchRoll(yawDeg, pitchDeg, rollDeg){
+			const yaw = THREE.Math.degToRad(yawDeg);
+			const pitch = THREE.Math.degToRad(pitchDeg);
+			const roll = THREE.Math.degToRad(rollDeg);
+
+			const qYaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), yaw);
+			const qPitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), pitch);
+			const qRoll = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), roll);
+
+			return qYaw.multiply(qPitch).multiply(qRoll);
+		}
+
+		function poseQuaternionFromPotree360Texture(courseDeg, pitchDeg, rollDeg){
+			const euler = new THREE.Euler(
+				THREE.Math.degToRad(+rollDeg + POTREE_360_ROLL_OFFSET_DEG),
+				THREE.Math.degToRad(-pitchDeg),
+				THREE.Math.degToRad(-courseDeg + POTREE_360_COURSE_OFFSET_DEG),
+				"ZYX"
+			);
+
+			return new THREE.Quaternion().setFromEuler(euler);
+		}
+
+		function poseQuaternionFromPotree360Camera(courseDeg, pitchDeg, rollDeg){
+			const cameraPitchDeg = pitchDeg + POTREE_360_CAMERA_PITCH_OFFSET_DEG;
+			return poseQuaternionFromPotree360Texture(courseDeg, cameraPitchDeg, rollDeg);
+		}
+
+		function orientationModeLabel(mode){
+			return mode === "potree360"
+				? "Potree 360 course / pitch / roll (degrees)"
+				: "Viewer yaw / pitch / roll (degrees)";
+		}
+
+		function updatePoseInfo(){
+			const el = document.getElementById("poseInfo");
+			if(!el){
+				return;
+			}
+
+			el.textContent = `Pose source: ${currentPoseSourceLabel} - ${orientationModeLabel(currentPoseOrientationMode)}`;
+		}
+
+		function updateCoordinateInfo(){
+			const el = document.getElementById("coordinateInfo");
+			const indexInput = document.getElementById("poseIndex");
+
+			if(coordinateRows.length === 0){
+				if(indexInput){
+					indexInput.disabled = true;
+					indexInput.value = 0;
+					indexInput.removeAttribute("max");
+				}
+				if(el){
+					el.textContent = "No coordinates loaded";
+				}
+				return;
+			}
+
+			if(indexInput){
+				indexInput.disabled = false;
+				indexInput.min = 0;
+				indexInput.max = coordinateRows.length - 1;
+				indexInput.value = selectedCoordinateIndex >= 0 ? selectedCoordinateIndex : "";
+			}
+
+			const select = document.getElementById("poseSelect");
+			if(select){
+				select.value = selectedCoordinateIndex >= 0 ? String(selectedCoordinateIndex) : "";
+			}
+
+			if(el){
+				const selectedText = selectedCoordinateIndex >= 0 ? `selected index ${selectedCoordinateIndex}` : "no index selected";
+				el.textContent = `${coordinateRows.length} poses loaded - ${selectedText}`;
+			}
+		}
+
+		function setPoseMode(mode){
+			currentPoseOrientationMode = mode === "potree360" ? "potree360" : "yawPitchRoll";
+			const select = document.getElementById("poseOrientationMode");
+			if(select && select.value !== currentPoseOrientationMode){
+				select.value = currentPoseOrientationMode;
+			}
+			updatePoseInfo();
+		}
+
+		function markPoseEdited(){
+			currentPoseSourceLabel = "edited pose";
+			updatePoseInfo();
+			updateCoordinateInfo();
+		}
+
+		function readPose(){
+			const position = new THREE.Vector3(readNumber("posX"), readNumber("posY"), readNumber("posZ"));
+			const yaw = readNumber("yaw");
+			const pitch = readNumber("pitch");
+			const roll = readNumber("roll");
+			const orientationMode = document.getElementById("poseOrientationMode").value;
+			setPoseMode(orientationMode);
+			const renderQuaternion = currentPoseOrientationMode === "potree360"
+				? poseQuaternionFromPotree360Texture(yaw, pitch, roll)
+				: poseQuaternionFromYawPitchRoll(yaw, pitch, roll);
+			const viewQuaternion = currentPoseOrientationMode === "potree360"
+				? poseQuaternionFromPotree360Camera(yaw, pitch, roll)
+				: renderQuaternion;
+
+			return {
+				position,
+				quaternion: renderQuaternion,
+				renderQuaternion,
+				viewQuaternion,
+				yaw,
+				pitch,
+				roll,
+				orientationMode: currentPoseOrientationMode,
+			};
+		}
+
+		function setPoseInputs(row, index = -1){
+			const transformed = transformPositionIfNeeded(row);
+			selectedCoordinateIndex = Number.isInteger(index) ? index : -1;
+			currentPoseSourceLabel = selectedCoordinateIndex >= 0
+				? `coordinate index ${selectedCoordinateIndex}: ${row.label}`
+				: "manual";
+			setPoseMode(row.orientationMode || "yawPitchRoll");
+			document.getElementById("posX").value = transformed[0];
+			document.getElementById("posY").value = transformed[1];
+			document.getElementById("posZ").value = transformed[2];
+			document.getElementById("yaw").value = row.yaw || 0;
+			document.getElementById("pitch").value = row.pitch || 0;
+			document.getElementById("roll").value = row.roll || 0;
+			updatePoseInfo();
+			updateCoordinateInfo();
+		}
+
+		function applyPoseToView(){
+			const pose = readPose();
+			const forward = new THREE.Vector3(0, 1, 0).applyQuaternion(pose.viewQuaternion).normalize();
+			viewer.scene.view.position.copy(pose.position);
+			viewer.scene.view.lookAt(pose.position.clone().add(forward));
+			setStatus(`Applied pose to viewer (${orientationModeLabel(pose.orientationMode)})`);
+		}
+
+		function useCurrentViewPose(){
+			if(!viewer){
+				return;
+			}
+
+			const view = viewer.scene.view;
+			selectedCoordinateIndex = -1;
+			currentPoseSourceLabel = "copied from viewer";
+			setPoseMode("yawPitchRoll");
+			document.getElementById("posX").value = view.position.x;
+			document.getElementById("posY").value = view.position.y;
+			document.getElementById("posZ").value = view.position.z;
+			document.getElementById("yaw").value = THREE.Math.radToDeg(view.yaw);
+			document.getElementById("pitch").value = THREE.Math.radToDeg(view.pitch);
+			document.getElementById("roll").value = 0;
+			updateCoordinateInfo();
+			setStatus("Copied current viewer camera to pose fields");
+		}
+
+		function splitCoordinateLine(line){
+			const trimmed = line.trim();
+			if(trimmed.includes("\t")){
+				return trimmed.split("\t").map(token => token.replace(/^"|"$/g, "").trim());
+			}
+
+			return trimmed.split(/[;,\s]+/).map(token => token.replace(/^"|"$/g, "").trim());
+		}
+
+		function looksLikeHeader(tokens){
+			const joined = tokens.join(" ").toLowerCase();
+			return /(^|\s)(x|y|z|long|lon|lat|alt|course|yaw|pitch|roll|file|time)(\s|$)/.test(joined);
+		}
+
+		function parseNumberToken(token){
+			const value = Number(token);
+			return Number.isFinite(value) ? value : null;
+		}
+
+		function normalizeCoordinateRow(row){
+			if([row.x, row.y, row.z, row.yaw, row.pitch, row.roll].every(Number.isFinite)){
+				return row;
+			}
+
+			return null;
+		}
+
+		function parseRowsWithoutHeader(lines){
+			const rows = [];
+
+			for(const line of lines){
+				const tokens = splitCoordinateLine(line);
+				if(tokens.length < 6){
+					continue;
+				}
+
+				let row = null;
+				const first = parseNumberToken(tokens[0]);
+
+				if(first === null && tokens.length >= 8){
+					row = {
+						label: tokens[0],
+						file: tokens[0],
+						x: Number(tokens[2]),
+						y: Number(tokens[3]),
+						z: Number(tokens[4]),
+						yaw: Number(tokens[5]),
+						pitch: Number(tokens[6]),
+						roll: Number(tokens[7]),
+						positionMode: "scene",
+						orientationMode: "potree360",
+					};
+				}else{
+					row = {
+						label: `pose ${rows.length}`,
+						file: null,
+						x: Number(tokens[0]),
+						y: Number(tokens[1]),
+						z: Number(tokens[2]),
+						yaw: Number(tokens[3]),
+						pitch: Number(tokens[4]),
+						roll: Number(tokens[5]),
+						positionMode: "scene",
+						orientationMode: "yawPitchRoll",
+					};
+				}
+
+				row = normalizeCoordinateRow(row);
+				if(row){
+					rows.push(row);
+				}
+			}
+
+			return rows;
+		}
+
+		function parseRowsWithHeader(lines){
+			const header = splitCoordinateLine(lines[0]).map(token => token.toLowerCase());
+			const rows = [];
+
+			const indexOf = (...names) => {
+				for(const name of names){
+					const index = header.indexOf(name);
+					if(index >= 0){
+						return index;
+					}
+				}
+
+				return -1;
+			};
+
+			const ixScene = indexOf("x", "easting", "long", "lon", "longitude");
+			const iyScene = indexOf("y", "northing", "lat", "latitude");
+			const ix = ixScene;
+			const iy = iyScene;
+			const iz = indexOf("z", "alt", "altitude", "height");
+			const icourse = indexOf("course");
+			const iyaw = icourse >= 0 ? icourse : indexOf("yaw", "heading");
+			const ipitch = indexOf("pitch");
+			const iroll = indexOf("roll");
+			const ilabel = indexOf("file", "filename", "name", "image");
+			const positionMode = "scene";
+			const orientationMode = icourse >= 0 ? "potree360" : "yawPitchRoll";
+
+			for(const line of lines.slice(1)){
+				const tokens = splitCoordinateLine(line);
+				if(tokens.length === 0 || ix < 0 || iy < 0 || iz < 0 || iyaw < 0 || ipitch < 0 || iroll < 0){
+					continue;
+				}
+
+				let row = {
+					label: ilabel >= 0 ? tokens[ilabel] : `pose ${rows.length}`,
+					file: ilabel >= 0 ? tokens[ilabel] : null,
+					x: Number(tokens[ix]),
+					y: Number(tokens[iy]),
+					z: Number(tokens[iz]),
+					yaw: Number(tokens[iyaw]),
+					pitch: Number(tokens[ipitch]),
+					roll: Number(tokens[iroll]),
+					positionMode,
+					orientationMode,
+				};
+
+				row = normalizeCoordinateRow(row);
+				if(row){
+					rows.push(row);
+				}
+			}
+
+			return rows;
+		}
+
+		function parseCoordinateFile(text){
+			const lines = text.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0 && !line.startsWith("#"));
+			if(lines.length === 0){
+				return [];
+			}
+
+			const firstTokens = splitCoordinateLine(lines[0]);
+			return looksLikeHeader(firstTokens) ? parseRowsWithHeader(lines) : parseRowsWithoutHeader(lines);
+		}
+
+		async function loadImages360CoordinateRows(){
+			const baseUrl = document.getElementById("coordsBaseUrl").value.trim();
+			if(baseUrl.length === 0){
+				throw new Error("360 image folder URL is required");
+			}
+
+			const coordinatesResponse = await fetch(coordinatesFileUrlFromInputs(), {cache: "no-store"});
+			if(!coordinatesResponse.ok){
+				throw new Error(`Coordinates request failed with HTTP ${coordinatesResponse.status}`);
+			}
+			currentCoordinatesText = await coordinatesResponse.text();
+
+			const shouldTransform = document.getElementById("transformCoordinates").checked;
+			const params = {
+				legacyPotreePaths: document.getElementById("legacyPotreePaths").checked,
+			};
+
+			if(shouldTransform){
+				params.transform = getWgs84ToPointcloudTransform(true);
+			}
+
+			setStatus("Loading Potree 360 coordinates...");
+			const images360 = await withTimeout(
+				Potree.Images360Loader.load(baseUrl, viewer, params),
+				15000,
+				"Timed out while loading 360 coordinates"
+			);
+
+			return images360.images.map((image, index) => ({
+				label: image.file ? basename(image.file) : `pose ${index}`,
+				file: image.file ? basename(image.file) : null,
+				x: image.position[0],
+				y: image.position[1],
+				z: image.position[2],
+				yaw: image.course,
+				pitch: image.pitch,
+				roll: image.roll,
+				positionMode: "scene",
+				orientationMode: "potree360",
+			}));
+		}
+
+		function selectCoordinateIndex(index, silent = false){
+			if(coordinateRows.length === 0){
+				throw new Error("No coordinates loaded");
+			}
+
+			const requested = Math.trunc(Number(index));
+			if(!Number.isFinite(requested)){
+				throw new Error("Coordinate index is not valid");
+			}
+
+			const clamped = Math.max(0, Math.min(coordinateRows.length - 1, requested));
+			const select = document.getElementById("poseSelect");
+			const indexInput = document.getElementById("poseIndex");
+
+			if(select){
+				select.value = String(clamped);
+			}
+			if(indexInput){
+				indexInput.value = clamped;
+			}
+
+			setPoseInputs(coordinateRows[clamped], clamped);
+
+			if(!silent){
+				setStatus(`Selected coordinate index ${clamped}`);
+			}
+		}
+
+		function updatePoseSelect(){
+			const select = document.getElementById("poseSelect");
+			const indexInput = document.getElementById("poseIndex");
+			select.innerHTML = "";
+
+			if(coordinateRows.length === 0){
+				selectedCoordinateIndex = -1;
+				select.disabled = true;
+				select.appendChild(new Option("No coordinates loaded", ""));
+				if(indexInput){
+					indexInput.disabled = true;
+					indexInput.value = 0;
+					indexInput.removeAttribute("max");
+				}
+				updateCoordinateInfo();
+				return;
+			}
+
+			select.appendChild(new Option("No coordinate selected", ""));
+
+			coordinateRows.forEach((row, index) => {
+				const option = new Option(`${index}: ${row.label}`, String(index));
+				select.appendChild(option);
+			});
+
+			select.disabled = false;
+			if(indexInput){
+				indexInput.disabled = false;
+				indexInput.min = 0;
+				indexInput.max = coordinateRows.length - 1;
+			}
+
+			selectCoordinateIndex(0, true);
+		}
+
+		function createFaceCamera(pose, face, near, far){
+			const camera = new THREE.PerspectiveCamera(90, 1, near, far);
+			const forward = face.forward.clone().applyQuaternion(pose.quaternion).normalize();
+			const up = face.up.clone().applyQuaternion(pose.quaternion).normalize();
+
+			camera.position.copy(pose.position);
+			camera.up.copy(up);
+			camera.lookAt(pose.position.clone().add(forward));
+			camera.updateMatrix();
+			camera.updateMatrixWorld(true);
+			camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
+			camera.updateProjectionMatrix();
+
+			return camera;
+		}
+
+		async function waitFrame(){
+			return new Promise(resolve => requestAnimationFrame(resolve));
+		}
+
+		async function preparePointClouds(camera, warmupFrames){
+			for(let i = 0; i < warmupFrames; i++){
+				Potree.updatePointClouds(viewer.scene.pointclouds, camera, viewer.renderer);
+				await waitFrame();
+			}
+
+			Potree.updatePointClouds(viewer.scene.pointclouds, camera, viewer.renderer);
+		}
+
+		function selectFace(direction){
+			const ax = Math.abs(direction.x);
+			const ay = Math.abs(direction.y);
+			const az = Math.abs(direction.z);
+
+			if(ax >= ay && ax >= az){
+				return direction.x >= 0 ? "posX" : "negX";
+			}
+
+			if(ay >= ax && ay >= az){
+				return direction.y >= 0 ? "posY" : "negY";
+			}
+
+			return direction.z >= 0 ? "posZ" : "negZ";
+		}
+
+		function sampleFaceDepth(faceBuffers, faceName, direction, faceSize){
+			const face = faceByName.get(faceName);
+			const buffer = faceBuffers.get(faceName);
+			const forward = face.forward;
+			const up = face.up;
+			const right = face.right;
+			const cosAngle = direction.dot(forward);
+
+			if(cosAngle <= 0){
+				return 0;
+			}
+
+			const ndcX = direction.dot(right) / cosAngle;
+			const ndcY = direction.dot(up) / cosAngle;
+			const x = Math.max(0, Math.min(faceSize - 1, Math.round((ndcX * 0.5 + 0.5) * (faceSize - 1))));
+			const y = Math.max(0, Math.min(faceSize - 1, Math.round((ndcY * 0.5 + 0.5) * (faceSize - 1))));
+			const linearFaceDepth = buffer[4 * (y * faceSize + x)];
+
+			if(!Number.isFinite(linearFaceDepth) || linearFaceDepth <= 0){
+				return 0;
+			}
+
+			return linearFaceDepth / cosAngle;
+		}
+
+		function setEquirectangularDirection(direction, u, v, orientationMode){
+			if(orientationMode === "potree360"){
+				const theta = v * Math.PI;
+				const phi = (1.0 - u) * Math.PI * 2;
+				const sinTheta = Math.sin(theta);
+
+				direction.set(
+					-Math.cos(phi) * sinTheta,
+					Math.cos(theta),
+					Math.sin(phi) * sinTheta
+				);
+				return;
+			}
+
+			const phi = (0.5 - v) * Math.PI;
+			const cosPhi = Math.cos(phi);
+			const theta = (u - 0.5) * Math.PI * 2;
+
+			direction.set(
+				Math.sin(theta) * cosPhi,
+				Math.cos(theta) * cosPhi,
+				Math.sin(phi)
+			);
+		}
+
+		function buildEquirectangularDepth(faceBuffers, width, height, faceSize, orientationMode){
+			const depth = new Float32Array(width * height);
+
+			for(let y = 0; y < height; y++){
+				const v = (y + 0.5) / height;
+
+				for(let x = 0; x < width; x++){
+					const u = (x + 0.5) / width;
+					setEquirectangularDirection(tempDirection, u, v, orientationMode);
+
+					const faceName = selectFace(tempDirection);
+					depth[y * width + x] = sampleFaceDepth(faceBuffers, faceName, tempDirection, faceSize);
+				}
+			}
+
+			return depth;
+		}
+
+		function readRenderOptions(){
+			const width = Math.max(16, Math.floor(readNumber("outputWidth")));
+			const height = Math.max(8, Math.floor(readNumber("outputHeight")));
+			const near = Math.max(0.001, readNumber("cameraNear"));
+			const far = Math.max(near + 1, readNumber("cameraFar"));
+			const warmupFrames = Math.max(1, Math.floor(readNumber("warmupFrames")));
+			const pointBudget = Math.max(100000, Math.floor(readNumber("pointBudget")));
+			const faceSize = Math.max(16, Math.ceil(Math.max(width / 4, height / 2)));
+
+			return {width, height, near, far, warmupFrames, pointBudget, faceSize};
+		}
+
+		function renderOptionsFromConfig(config = {}){
+			const previous = {};
+			const map = {
+				width: "outputWidth",
+				height: "outputHeight",
+				near: "cameraNear",
+				far: "cameraFar",
+				warmupFrames: "warmupFrames",
+				pointBudget: "pointBudget",
+			};
+
+			for(const [key, id] of Object.entries(map)){
+				if(config[key] !== undefined){
+					const el = document.getElementById(id);
+					previous[id] = el.value;
+					el.value = config[key];
+				}
+			}
+
+			try{
+				return readRenderOptions();
+			}finally{
+				for(const [id, value] of Object.entries(previous)){
+					document.getElementById(id).value = value;
+				}
+			}
+		}
+
+		function poseFromCoordinateRow(row){
+			const transformed = transformPositionIfNeeded(row);
+			const position = new THREE.Vector3(transformed[0], transformed[1], transformed[2]);
+			const yaw = Number(row.yaw) || 0;
+			const pitch = Number(row.pitch) || 0;
+			const roll = Number(row.roll) || 0;
+			const orientationMode = row.orientationMode === "potree360" ? "potree360" : "yawPitchRoll";
+			const renderQuaternion = orientationMode === "potree360"
+				? poseQuaternionFromPotree360Texture(yaw, pitch, roll)
+				: poseQuaternionFromYawPitchRoll(yaw, pitch, roll);
+			const viewQuaternion = orientationMode === "potree360"
+				? poseQuaternionFromPotree360Camera(yaw, pitch, roll)
+				: renderQuaternion;
+
+			return {
+				position,
+				quaternion: renderQuaternion,
+				renderQuaternion,
+				viewQuaternion,
+				yaw,
+				pitch,
+				roll,
+				orientationMode,
+			};
+		}
+
+		async function renderDepthForPose(pose, options, callbacks = {}){
+			await ensurePointCloudLoaded();
+			applyPointRenderingSettings();
+			syncClassificationMaterials();
+
+			const oldBudget = Potree.pointBudget;
+			const faceBuffers = new Map();
+
+			try{
+				Potree.pointBudget = options.pointBudget;
+				viewer.setPointBudget(options.pointBudget);
+
+				for(let i = 0; i < faceDefinitions.length; i++){
+					const face = faceDefinitions[i];
+					if(callbacks.onFace){
+						callbacks.onFace(face, i, faceDefinitions.length);
+					}
+
+					const camera = createFaceCamera(pose, face, options.near, options.far);
+					await preparePointClouds(camera, options.warmupFrames);
+
+					const clipSpheres = viewer.scene.volumes.filter(volume => Potree.SphereVolume && volume instanceof Potree.SphereVolume);
+					const target = viewer.pRenderer.renderDepthToTarget(viewer.scene.scenePointCloud, camera, options.faceSize, options.faceSize, {clipSpheres});
+					const buffer = new Float32Array(options.faceSize * options.faceSize * 4);
+					viewer.renderer.readRenderTargetPixels(target, 0, 0, options.faceSize, options.faceSize, buffer);
+					faceBuffers.set(face.name, buffer);
+					await waitFrame();
+				}
+
+				if(callbacks.onProject){
+					callbacks.onProject();
+				}
+				const depth = buildEquirectangularDepth(faceBuffers, options.width, options.height, options.faceSize, pose.orientationMode);
+				return {depth, width: options.width, height: options.height};
+			}finally{
+				Potree.pointBudget = oldBudget;
+				if(viewer){
+					viewer.setPointBudget(oldBudget);
+				}
+			}
+		}
+
+		function updateDepthPreview(depth, width, height){
+			let min = Infinity;
+			let max = -Infinity;
+
+			for(let i = 0; i < depth.length; i++){
+				const value = depth[i];
+				if(value > 0 && Number.isFinite(value)){
+					min = Math.min(min, value);
+					max = Math.max(max, value);
+				}
+			}
+
+			const canvas = document.getElementById("depthPreview");
+			const previewWidth = Math.min(1024, width);
+			const previewHeight = Math.max(1, Math.round(previewWidth * height / width));
+			canvas.width = previewWidth;
+			canvas.height = previewHeight;
+
+			const context = canvas.getContext("2d");
+			const image = context.createImageData(previewWidth, previewHeight);
+			const range = max > min ? max - min : 1;
+
+			for(let y = 0; y < previewHeight; y++){
+				const sourceY = Math.min(height - 1, Math.floor(y * height / previewHeight));
+
+				for(let x = 0; x < previewWidth; x++){
+					const sourceX = Math.min(width - 1, Math.floor(x * width / previewWidth));
+					const value = depth[sourceY * width + sourceX];
+					const offset = 4 * (y * previewWidth + x);
+
+					if(value > 0 && Number.isFinite(value)){
+						const normalized = Math.max(0, Math.min(1, (value - min) / range));
+						const shade = Math.round(255 * (1 - normalized));
+						image.data[offset + 0] = shade;
+						image.data[offset + 1] = shade;
+						image.data[offset + 2] = shade;
+						image.data[offset + 3] = 255;
+					}else{
+						image.data[offset + 0] = 0;
+						image.data[offset + 1] = 0;
+						image.data[offset + 2] = 0;
+						image.data[offset + 3] = 255;
+					}
+				}
+			}
+
+			context.putImageData(image, 0, 0);
+
+			if(Number.isFinite(min) && Number.isFinite(max)){
+				setStatus(`Preview depth range ${min.toFixed(3)} to ${max.toFixed(3)} m`);
+			}else{
+				setStatus("Depth preview contains no hits", true);
+			}
+		}
+
+		function createFloat32TiffBlob(depth, width, height){
+			const numEntries = 10;
+			const ifdOffset = 8;
+			const ifdSize = 2 + numEntries * 12 + 4;
+			const pixelOffset = ifdOffset + ifdSize;
+			const byteCount = width * height * 4;
+			const header = new ArrayBuffer(pixelOffset);
+			const view = new DataView(header);
+
+			view.setUint8(0, 0x49);
+			view.setUint8(1, 0x49);
+			view.setUint16(2, 42, true);
+			view.setUint32(4, ifdOffset, true);
+			view.setUint16(ifdOffset, numEntries, true);
+
+			let entryOffset = ifdOffset + 2;
+			const writeTag = (tag, type, count, value) => {
+				view.setUint16(entryOffset + 0, tag, true);
+				view.setUint16(entryOffset + 2, type, true);
+				view.setUint32(entryOffset + 4, count, true);
+
+				if(type === 3 && count === 1){
+					view.setUint16(entryOffset + 8, value, true);
+					view.setUint16(entryOffset + 10, 0, true);
+				}else{
+					view.setUint32(entryOffset + 8, value, true);
+				}
+
+				entryOffset += 12;
+			};
+
+			writeTag(256, 4, 1, width);
+			writeTag(257, 4, 1, height);
+			writeTag(258, 3, 1, 32);
+			writeTag(259, 3, 1, 1);
+			writeTag(262, 3, 1, 1);
+			writeTag(273, 4, 1, pixelOffset);
+			writeTag(277, 3, 1, 1);
+			writeTag(278, 4, 1, height);
+			writeTag(279, 4, 1, byteCount);
+			writeTag(339, 3, 1, 3);
+			view.setUint32(entryOffset, 0, true);
+
+			const pixels = new ArrayBuffer(byteCount);
+			const pixelView = new DataView(pixels);
+			let offset = 0;
+			for(let y = 0; y < height; y++){
+				for(let x = 0; x < width; x++){
+					pixelView.setFloat32(offset, depth[y * width + x], true);
+					offset += 4;
+				}
+			}
+
+			return new Blob([header, pixels], {type: "image/tiff"});
+		}
+
+		function tiffFilename(path){
+			const name = basename(path);
+			return /\.tiff?$/i.test(name) ? name : `${name}.tif`;
+		}
+
+		async function saveBlob(blob, requestedPath){
+			const suggestedName = tiffFilename(requestedPath);
+
+			if(window.showSaveFilePicker){
+				try{
+					const handle = await window.showSaveFilePicker({
+						suggestedName,
+						types: [{
+							description: "Float32 TIFF",
+							accept: {"image/tiff": [".tif", ".tiff"]},
+						}],
+					});
+					const writable = await handle.createWritable();
+					await writable.write(blob);
+					await writable.close();
+					return;
+				}catch(error){
+					if(error && error.name === "AbortError"){
+						throw error;
+					}
+				}
+			}
+
+			const url = URL.createObjectURL(blob);
+			const link = document.createElement("a");
+			link.href = url;
+			link.download = suggestedName;
+			document.body.appendChild(link);
+			link.click();
+			link.remove();
+			URL.revokeObjectURL(url);
+		}
+
+		function setBatchStatus(message, isError){
+			const status = document.getElementById("batchStatus");
+			status.textContent = message;
+			status.classList.toggle("error", !!isError);
+		}
+
+		function setBatchProgress(percent){
+			document.getElementById("batchProgressBar").style.width = `${Math.max(0, Math.min(100, percent))}%`;
+		}
+
+		function appendBatchLog(message){
+			const log = document.getElementById("batchLog");
+			const current = log.textContent === "Batch log is empty." ? "" : log.textContent;
+			log.textContent = `${current}${current ? "\n" : ""}${message}`;
+			log.scrollTop = log.scrollHeight;
+		}
+
+		function setBatchButtonsBusy(isBusy){
+			document.getElementById("startBatchRender").disabled = isBusy;
+			document.getElementById("cancelBatchRender").disabled = !isBusy;
+			document.getElementById("selectBatchFolder").disabled = isBusy;
+			document.getElementById("renderDepth").disabled = isBusy || renderInProgress;
+			document.getElementById("saveDepth").disabled = isBusy || renderInProgress || !lastRenderedDepth;
+		}
+
+		function joinUrlPath(base, relativePath){
+			const b = String(base || "").replace(/\/+$/, "");
+			const r = String(relativePath || "").replace(/\\/g, "/").replace(/^\/+/, "");
+			return r ? `${b}/${r}` : b;
+		}
+
+		function coordinatesFileUrlFromInputs(){
+			const baseUrl = document.getElementById("coordsBaseUrl").value.trim();
+			if(baseUrl.length === 0){
+				throw new Error("360 image folder URL is required");
+			}
+			return document.getElementById("legacyPotreePaths").checked
+				? joinUrlPath(baseUrl, "pano/coordinates.txt")
+				: joinUrlPath(baseUrl, "coordinates.txt");
+		}
+
+		function readBatchRange(totalRows, config = {}){
+			if(totalRows === 0){
+				throw new Error("No coordinates loaded");
+			}
+
+			const startValue = config.startIndex !== undefined ? config.startIndex : document.getElementById("batchStartIndex").value;
+			const endValue = config.endIndex !== undefined ? config.endIndex : document.getElementById("batchEndIndex").value;
+			const start = startValue === "" || startValue === null || startValue === undefined
+				? 0
+				: Math.trunc(Number(startValue));
+			const end = endValue === "" || endValue === null || endValue === undefined
+				? totalRows - 1
+				: Math.trunc(Number(endValue));
+
+			if(!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end < start || end >= totalRows){
+				throw new Error(`Invalid batch range ${startValue || 0} to ${endValue || totalRows - 1}`);
+			}
+
+			return {start, end};
+		}
+
+		function sanitizePathSegment(segment){
+			return String(segment || "")
+				.replace(/[<>:"|?*\x00-\x1f]/g, "_")
+				.replace(/^\.+$/, "_")
+				.trim() || "_";
+		}
+
+		function outputPathForCoordinateRow(row, index){
+			const raw = String(row.file || row.label || `pose_${index}`).replace(/"/g, "").replace(/\\/g, "/").split(/[?#]/)[0];
+			const name = raw.split("/").filter(Boolean).pop() || `pose_${index}`;
+			const safeName = sanitizePathSegment(name);
+			return /\.[^./]+$/.test(safeName) ? safeName.replace(/\.[^./]+$/, ".tif") : `${safeName}.tif`;
+		}
+
+		async function directoryFileExists(directoryHandle, relativePath){
+			let directory = directoryHandle;
+			const parts = relativePath.split("/").filter(Boolean);
+			for(const segment of parts.slice(0, -1)){
+				try{
+					directory = await directory.getDirectoryHandle(segment);
+				}catch(error){
+					return false;
+				}
+			}
+
+			try{
+				await directory.getFileHandle(parts[parts.length - 1]);
+				return true;
+			}catch(error){
+				return false;
+			}
+		}
+
+		async function writeBlobToDirectory(directoryHandle, relativePath, blob, overwrite){
+			let directory = directoryHandle;
+			const parts = relativePath.split("/").filter(Boolean);
+			for(const segment of parts.slice(0, -1)){
+				directory = await directory.getDirectoryHandle(segment, {create: true});
+			}
+
+			const name = parts[parts.length - 1];
+			if(!overwrite && await directoryFileExists(directoryHandle, relativePath)){
+				return {skipped: true};
+			}
+
+			const fileHandle = await directory.getFileHandle(name, {create: true});
+			const writable = await fileHandle.createWritable();
+			await writable.write(blob);
+			await writable.close();
+			return {skipped: false};
+		}
+
+		function coordinatorUrl(path, endpoint){
+			return `${String(endpoint || "").replace(/\/+$/, "")}${path}`;
+		}
+
+		async function coordinatorOutputExists(outputMode, relativePath){
+			const url = new URL(coordinatorUrl("/api/depth-batch/exists", outputMode.endpoint));
+			url.searchParams.set("path", relativePath);
+			if(outputMode.jobId){
+				url.searchParams.set("jobId", outputMode.jobId);
+			}
+			const response = await fetch(url.href);
+			if(!response.ok){
+				throw new Error(`Coordinator exists check failed with HTTP ${response.status}`);
+			}
+			const data = await response.json();
+			return !!data.exists;
+		}
+
+		async function writeBlobToCoordinator(outputMode, relativePath, blob, overwrite){
+			const url = new URL(coordinatorUrl("/api/depth-batch/write", outputMode.endpoint));
+			url.searchParams.set("path", relativePath);
+			url.searchParams.set("overwrite", overwrite ? "1" : "0");
+			if(outputMode.jobId){
+				url.searchParams.set("jobId", outputMode.jobId);
+			}
+			const response = await fetch(url.href, {method: "POST", body: blob});
+			if(!response.ok){
+				const text = await response.text();
+				throw new Error(text || `Coordinator write failed with HTTP ${response.status}`);
+			}
+			return response.json();
+		}
+
+		async function saveBatchDepth(result, row, index, outputMode, overwrite){
+			const relativePath = outputPathForCoordinateRow(row, index);
+			if(outputMode.type === "directory"){
+				if(!overwrite && await directoryFileExists(outputMode.directoryHandle, relativePath)){
+					return {relativePath, skipped: true};
+				}
+				const blob = createFloat32TiffBlob(result.depth, result.width, result.height);
+				const written = await writeBlobToDirectory(outputMode.directoryHandle, relativePath, blob, overwrite);
+				return {relativePath, skipped: !!written.skipped};
+			}
+
+			if(outputMode.type === "coordinator"){
+				if(!overwrite && await coordinatorOutputExists(outputMode, relativePath)){
+					return {relativePath, skipped: true};
+				}
+				const blob = createFloat32TiffBlob(result.depth, result.width, result.height);
+				const written = await writeBlobToCoordinator(outputMode, relativePath, blob, overwrite);
+				return {relativePath, skipped: !!written.skipped};
+			}
+
+			throw new Error("Unsupported batch output mode");
+		}
+
+		function readPointRenderingConfig(){
+			return {
+				pointSize: readNumber("renderPointSize"),
+				minPointSize: readNumber("renderMinPointSize"),
+				maxPointSize: readNumber("renderMaxPointSize"),
+			};
+		}
+
+		function applyPointRenderingConfig(config = {}){
+			if(config.pointSize !== undefined){
+				document.getElementById("renderPointSize").value = config.pointSize;
+			}
+			if(config.minPointSize !== undefined){
+				document.getElementById("renderMinPointSize").value = config.minPointSize;
+			}
+			if(config.maxPointSize !== undefined){
+				document.getElementById("renderMaxPointSize").value = config.maxPointSize;
+			}
+		}
+
+		function applyDepthBatchConfig(config = {}){
+			const values = {
+				pointcloudUrl: config.pointcloud || config.pointcloudUrl,
+				outputWidth: config.width,
+				outputHeight: config.height,
+				cameraNear: config.near,
+				cameraFar: config.far,
+				warmupFrames: config.warmupFrames,
+				pointBudget: config.pointBudget,
+			};
+
+			for(const [id, value] of Object.entries(values)){
+				if(value !== undefined && value !== null){
+					document.getElementById(id).value = value;
+				}
+			}
+
+			if(config.transformCoordinates !== undefined){
+				document.getElementById("transformCoordinates").checked = !!config.transformCoordinates;
+			}
+			if(config.legacyPotreePaths !== undefined){
+				document.getElementById("legacyPotreePaths").checked = !!config.legacyPotreePaths;
+			}
+			applyPointRenderingConfig(config);
+		}
+
+		async function loadCoordinatesText(text, sourceLabel = "coordinates text"){
+			currentCoordinatesText = String(text || "");
+			coordinateRows = parseCoordinateFile(currentCoordinatesText);
+			updatePoseSelect();
+			const potree360Count = coordinateRows.filter(row => row.orientationMode === "potree360").length;
+			const suffix = potree360Count > 0 ? ` (${potree360Count} Potree 360 poses)` : "";
+			setStatus(`Loaded ${coordinateRows.length} poses from ${sourceLabel}${suffix}`);
+			return coordinateRows;
+		}
+
+		async function selectBatchOutputFolder(){
+			if(!window.showDirectoryPicker){
+				throw new Error("Folder selection requires a browser with the File System Access API");
+			}
+			batchOutputDirectoryHandle = await window.showDirectoryPicker({mode: "readwrite"});
+			setBatchStatus(`Selected output folder: ${batchOutputDirectoryHandle.name}`);
+		}
+
+		async function runDepthBatch(config = {}){
+			if(batchInProgress){
+				throw new Error("A batch is already running");
+			}
+			if(coordinateRows.length === 0){
+				throw new Error("Load coordinates before starting batch rendering");
+			}
+
+			batchInProgress = true;
+			batchCancelRequested = false;
+			setBatchButtonsBusy(true);
+			setBatchProgress(0);
+			document.getElementById("batchLog").textContent = "";
+
+			const overwrite = config.overwrite !== undefined ? !!config.overwrite : document.getElementById("batchOverwrite").checked;
+			const outputMode = config.outputMode || {type: "directory", directoryHandle: batchOutputDirectoryHandle};
+			const {start, end} = readBatchRange(coordinateRows.length, config);
+			const total = end - start + 1;
+			const summary = {total, rendered: 0, skipped: 0, failed: 0, canceled: false, rows: []};
+
+			try{
+				if(outputMode.type === "directory" && !outputMode.directoryHandle){
+					throw new Error("Select a save folder before starting browser batch rendering");
+				}
+				if(config.classifications !== undefined){
+					setClassificationSelectionFromString(config.classifications, "");
+				}
+
+				const options = config.renderOptions || readRenderOptions();
+				await ensurePointCloudLoaded();
+
+				for(let index = start; index <= end; index++){
+					if(batchCancelRequested){
+						summary.canceled = true;
+						break;
+					}
+
+					const row = coordinateRows[index];
+					const relativePath = outputPathForCoordinateRow(row, index);
+					setBatchStatus(`Rendering ${index + 1}/${coordinateRows.length}: ${relativePath}`);
+
+					try{
+						if(!overwrite){
+							let exists = false;
+							if(outputMode.type === "directory"){
+								exists = await directoryFileExists(outputMode.directoryHandle, relativePath);
+							}else if(outputMode.type === "coordinator"){
+								exists = await coordinatorOutputExists(outputMode, relativePath);
+							}
+							if(exists){
+								summary.skipped++;
+								summary.rows.push({index, relativePath, status: "skipped"});
+								appendBatchLog(`Skipped ${relativePath}`);
+								setBatchProgress(((index - start + 1) / total) * 100);
+								continue;
+							}
+						}
+
+						const pose = poseFromCoordinateRow(row);
+						const result = await renderDepthForPose(pose, options, {
+							onFace: (face, faceIndex, totalFaces) => {
+								setBatchStatus(`Row ${index}: rendering ${face.name} (${faceIndex + 1}/${totalFaces})`);
+							},
+						});
+
+						if(config.updatePreview !== false){
+							updateDepthPreview(result.depth, result.width, result.height);
+						}
+
+						const saved = await saveBatchDepth(result, row, index, outputMode, overwrite);
+						if(saved.skipped){
+							summary.skipped++;
+							summary.rows.push({index, relativePath: saved.relativePath, status: "skipped"});
+							appendBatchLog(`Skipped ${saved.relativePath}`);
+						}else{
+							summary.rendered++;
+							summary.rows.push({index, relativePath: saved.relativePath, status: "rendered"});
+							appendBatchLog(`Rendered ${saved.relativePath}`);
+						}
+					}catch(error){
+						console.error(error);
+						summary.failed++;
+						summary.rows.push({index, relativePath, status: "failed", error: error.message || String(error)});
+						appendBatchLog(`Failed ${relativePath}: ${error.message || error}`);
+					}
+
+					setBatchProgress(((index - start + 1) / total) * 100);
+				}
+
+				const finalStatus = summary.canceled ? "Batch canceled" : "Batch complete";
+				setBatchStatus(`${finalStatus}: ${summary.rendered} rendered, ${summary.skipped} skipped, ${summary.failed} failed`);
+				return summary;
+			}catch(error){
+				setBatchStatus(error.message || String(error), true);
+				throw error;
+			}finally{
+				batchInProgress = false;
+				setBatchButtonsBusy(false);
+			}
+		}
+
+		function coordinatorPayloadFromUi(){
+			const renderOptions = readRenderOptions();
+			const pointRendering = readPointRenderingConfig();
+			const range = coordinateRows.length > 0 ? readBatchRange(coordinateRows.length) : {start: 0, end: -1};
+			return {
+				pointcloud: document.getElementById("pointcloudUrl").value.trim(),
+				coordinatesText: currentCoordinatesText || null,
+				rows: currentCoordinatesText ? null : coordinateRows,
+				out: document.getElementById("batchOutputDir").value.trim(),
+				width: renderOptions.width,
+				height: renderOptions.height,
+				near: renderOptions.near,
+				far: renderOptions.far,
+				warmupFrames: renderOptions.warmupFrames,
+				pointBudget: renderOptions.pointBudget,
+				pointSize: pointRendering.pointSize,
+				minPointSize: pointRendering.minPointSize,
+				maxPointSize: pointRendering.maxPointSize,
+				classifications: classificationSpecForBatch(),
+				transformCoordinates: document.getElementById("transformCoordinates").checked,
+				legacyPotreePaths: document.getElementById("legacyPotreePaths").checked,
+				startIndex: range.start,
+				endIndex: range.end,
+				overwrite: document.getElementById("batchOverwrite").checked,
+				gpus: document.getElementById("batchGpuIds").value.trim(),
+				workersPerGpu: Math.max(1, Math.floor(Number(document.getElementById("batchWorkersPerGpu").value) || 1)),
+			};
+		}
+
+		async function runCoordinatorBatchFromUi(){
+			const endpoint = document.getElementById("batchCoordinatorUrl").value.trim();
+			if(!endpoint){
+				throw new Error("Coordinator URL is required");
+			}
+			const payload = coordinatorPayloadFromUi();
+			if(!payload.out){
+				throw new Error("Coordinator output directory is required");
+			}
+
+			setBatchButtonsBusy(true);
+			setBatchStatus("Starting coordinator batch...");
+			setBatchProgress(0);
+			const response = await fetch(coordinatorUrl("/api/depth-batch/run", endpoint), {
+				method: "POST",
+				headers: {"Content-Type": "application/json"},
+				body: JSON.stringify(payload),
+			});
+			if(!response.ok){
+				const text = await response.text();
+				throw new Error(text || `Coordinator batch failed with HTTP ${response.status}`);
+			}
+			const summary = await response.json();
+			setBatchProgress(100);
+			setBatchStatus(`Coordinator complete: ${summary.rendered} rendered, ${summary.skipped} skipped, ${summary.failed} failed`);
+			appendBatchLog(JSON.stringify(summary, null, 2));
+			setBatchButtonsBusy(false);
+			return summary;
+		}
+
+		async function ensurePointCloudLoaded(){
+			const requestedUrl = document.getElementById("pointcloudUrl").value.trim();
+			if(currentPointcloud && currentPointcloudUrl === requestedUrl){
+				return currentPointcloud;
+			}
+
+			return loadPointCloudAsset();
+		}
+
+		function setRenderButtonsBusy(isBusy){
+			document.getElementById("renderDepth").disabled = isBusy;
+			document.getElementById("saveDepth").disabled = isBusy || !lastRenderedDepth;
+		}
+
+		async function renderDepthMap(){
+			if(renderInProgress){
+				return;
+			}
+
+			renderInProgress = true;
+			setRenderButtonsBusy(true);
+			setProgress(0);
+			lastRenderedDepth = null;
+
+			try{
+				const options = readRenderOptions();
+				const pose = readPose();
+				const result = await renderDepthForPose(pose, options, {
+					onFace: (face, index, total) => {
+						setStatus(`Rendering ${face.name} face (${index + 1}/${total})`);
+						setProgress((index / total) * 80);
+					},
+					onProject: () => {
+						setStatus("Projecting cube depth to equirectangular map");
+						setProgress(88);
+					},
+				});
+
+				updateDepthPreview(result.depth, result.width, result.height);
+				lastRenderedDepth = result;
+				setProgress(100);
+				setStatus(`Rendered ${result.width} x ${result.height} depth map. Save TIFF when ready.`);
+			}catch(error){
+				console.error(error);
+				setStatus(error.message || String(error), true);
+			}finally{
+				renderInProgress = false;
+				setRenderButtonsBusy(false);
+			}
+		}
+
+		async function saveRenderedDepth(){
+			if(!lastRenderedDepth){
+				setStatus("Render a depth map before saving", true);
+				return;
+			}
+
+			document.getElementById("saveDepth").disabled = true;
+			try{
+				const outputPath = document.getElementById("outputPath").value.trim() || "depth_map.tif";
+				setStatus("Saving depth map");
+				const blob = createFloat32TiffBlob(lastRenderedDepth.depth, lastRenderedDepth.width, lastRenderedDepth.height);
+				await saveBlob(blob, outputPath);
+				setStatus(`Saved ${tiffFilename(outputPath)} (${lastRenderedDepth.width} x ${lastRenderedDepth.height}, Float32 TIFF)`);
+			}catch(error){
+				if(error && error.name === "AbortError"){
+					setStatus("Save canceled", true);
+				}else{
+					console.error(error);
+					setStatus(error.message || String(error), true);
+				}
+			}finally{
+				document.getElementById("saveDepth").disabled = !lastRenderedDepth || renderInProgress;
+			}
+		}
+
+		document.getElementById("loadPointCloud").addEventListener("click", () => {
+			loadPointCloudAsset().catch(error => {
+				console.error(error);
+				setStatus(error.message || String(error), true);
+			});
+		});
+
+		document.getElementById("fitPointCloud").addEventListener("click", () => {
+			if(viewer.scene.pointclouds.length > 0){
+				viewer.fitToScreen();
+				useCurrentViewPose();
+			}
+		});
+
+		document.getElementById("selectAllClassifications").addEventListener("click", () => setAllClassificationsVisibility(true));
+		document.getElementById("clearClassifications").addEventListener("click", () => setAllClassificationsVisibility(false));
+		document.getElementById("invertClassifications").addEventListener("click", invertClassificationsVisibility);
+		document.getElementById("applyClassificationIndices").addEventListener("click", () => {
+			try{
+				setClassificationSelectionFromString(document.getElementById("classificationIndexInput").value);
+			}catch(error){
+				console.error(error);
+				setStatus(error.message || String(error), true);
+			}
+		});
+
+		document.getElementById("useCurrentView").addEventListener("click", useCurrentViewPose);
+		document.getElementById("applyPose").addEventListener("click", () => {
+			try{
+				applyPoseToView();
+			}catch(error){
+				setStatus(error.message || String(error), true);
+			}
+		});
+
+		document.getElementById("poseOrientationMode").addEventListener("change", event => {
+			currentPoseSourceLabel = "edited pose";
+			setPoseMode(event.target.value);
+			updateCoordinateInfo();
+		});
+
+		for(const id of ["posX", "posY", "posZ", "yaw", "pitch", "roll"]){
+			document.getElementById(id).addEventListener("input", markPoseEdited);
+		}
+
+		document.getElementById("loadCoordinatesUrl").addEventListener("click", () => {
+			loadImages360CoordinateRows().then(rows => {
+				const parsedRows = currentCoordinatesText ? parseCoordinateFile(currentCoordinatesText) : [];
+				coordinateRows = parsedRows.length === rows.length ? parsedRows : rows;
+				updatePoseSelect();
+				setStatus(`Loaded ${coordinateRows.length} Potree 360 poses`);
+			}).catch(error => {
+				console.error(error);
+				setStatus(error.message || String(error), true);
+			});
+		});
+
+		document.getElementById("coordsFile").addEventListener("change", event => {
+			const file = event.target.files[0];
+			if(!file){
+				return;
+			}
+
+			const reader = new FileReader();
+			reader.onload = loadEvent => {
+				try{
+					loadCoordinatesText(loadEvent.target.result, file.name);
+				}catch(error){
+					console.error(error);
+					setStatus(error.message || String(error), true);
+				}
+			};
+			reader.onerror = () => setStatus("Failed to read coordinates file", true);
+			reader.readAsText(file);
+		});
+
+		document.getElementById("poseSelect").addEventListener("change", event => {
+			try{
+				if(event.target.value === ""){
+					selectedCoordinateIndex = -1;
+					currentPoseSourceLabel = "edited pose";
+					updatePoseInfo();
+					updateCoordinateInfo();
+					return;
+				}
+
+				selectCoordinateIndex(event.target.value);
+			}catch(error){
+				console.error(error);
+				setStatus(error.message || String(error), true);
+			}
+		});
+
+		function handlePoseIndexInput(event){
+			if(event.target.value === ""){
+				return;
+			}
+
+			try{
+				selectCoordinateIndex(event.target.value);
+			}catch(error){
+				console.error(error);
+				setStatus(error.message || String(error), true);
+			}
+		}
+
+		document.getElementById("poseIndex").addEventListener("input", handlePoseIndexInput);
+		document.getElementById("poseIndex").addEventListener("change", handlePoseIndexInput);
+
+		document.getElementById("transformCoordinates").addEventListener("change", () => {
+			try{
+				const select = document.getElementById("poseSelect");
+				const index = selectedCoordinateIndex >= 0 ? selectedCoordinateIndex : Number(select.value);
+				if(Number.isInteger(index) && coordinateRows[index]){
+					selectCoordinateIndex(index, true);
+				}
+			}catch(error){
+				console.error(error);
+				setStatus(error.message || String(error), true);
+			}
+		});
+
+		for(const id of ["renderPointSize", "renderMinPointSize", "renderMaxPointSize"]){
+			document.getElementById(id).addEventListener("change", () => {
+				try{
+					applyPointRenderingSettings();
+				}catch(error){
+					setStatus(error.message || String(error), true);
+				}
+			});
+		}
+
+		document.getElementById("selectBatchFolder").addEventListener("click", () => {
+			selectBatchOutputFolder().catch(error => {
+				console.error(error);
+				setBatchStatus(error.message || String(error), true);
+			});
+		});
+
+		document.getElementById("startBatchRender").addEventListener("click", () => {
+			const runner = document.getElementById("useBatchCoordinator").checked
+				? runCoordinatorBatchFromUi()
+				: runDepthBatch();
+			runner.catch(error => {
+				console.error(error);
+				setBatchStatus(error.message || String(error), true);
+				setBatchButtonsBusy(false);
+			});
+		});
+
+		document.getElementById("cancelBatchRender").addEventListener("click", () => {
+			batchCancelRequested = true;
+			setBatchStatus("Cancel requested; current render will finish first");
+		});
+
+		document.getElementById("renderDepth").addEventListener("click", renderDepthMap);
+		document.getElementById("saveDepth").addEventListener("click", saveRenderedDepth);
+
+		window.depthBatch = {
+			configure(config = {}){
+				applyDepthBatchConfig(config);
+				if(config.classifications !== undefined && currentPointcloud){
+					setClassificationSelectionFromString(config.classifications, "");
+				}
+				return true;
+			},
+			async loadPointCloud(url){
+				if(url){
+					document.getElementById("pointcloudUrl").value = url;
+				}
+				const pointcloud = await loadPointCloudAsset();
+				return {name: pointcloud.name};
+			},
+			async loadCoordinatesText(text){
+				const rows = await loadCoordinatesText(text, "CLI");
+				return {count: rows.length};
+			},
+			loadRows(rows){
+				currentCoordinatesText = "";
+				coordinateRows = Array.isArray(rows) ? rows : [];
+				updatePoseSelect();
+				return {count: coordinateRows.length};
+			},
+			setClassifications(spec){
+				setClassificationSelectionFromString(spec, "");
+				return true;
+			},
+			runBatch(config = {}){
+				if(config.width !== undefined || config.height !== undefined || config.near !== undefined || config.far !== undefined || config.warmupFrames !== undefined || config.pointBudget !== undefined){
+					applyDepthBatchConfig(config);
+				}
+				return runDepthBatch(config);
+			},
+			cancel(){
+				batchCancelRequested = true;
+				return true;
+			},
+			outputPathForRow(index){
+				return outputPathForCoordinateRow(coordinateRows[index], index);
+			},
+			getRows(){
+				return coordinateRows.map((row, index) => ({...row, index, outputPath: outputPathForCoordinateRow(row, index)}));
+			},
+		};
+
+		updatePoseInfo();
+		updateCoordinateInfo();
+		renderClassificationFilter();
+		initViewer();
+	</script>
+</body>
+</html>

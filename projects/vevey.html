@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="description" content="">
+	<meta name="author" content="">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+	<title>Potree Viewer</title>
+
+	<link rel="stylesheet" type="text/css" href="../build/potree/potree.css">
+	<link rel="stylesheet" type="text/css" href="../libs/jquery-ui/jquery-ui.min.css">
+	<link rel="stylesheet" type="text/css" href="../libs/openlayers3/ol.css">
+	<link rel="stylesheet" type="text/css" href="../libs/spectrum/spectrum.css">
+	<link rel="stylesheet" type="text/css" href="../libs/jstree/themes/mixed/style.css">
+</head>
+
+<body>
+	<script src="../libs/jquery/jquery-3.1.1.min.js"></script>
+	<script src="../libs/spectrum/spectrum.js"></script>
+	<script src="../libs/jquery-ui/jquery-ui.min.js"></script>
+	<script src="../libs/other/BinaryHeap.js"></script>
+	<script src="../libs/tween/tween.min.js"></script>
+	<script src="../libs/d3/d3.js"></script>
+	<script src="../libs/proj4/proj4.js"></script>
+	<script src="../libs/openlayers3/ol.js"></script>
+	<script src="../libs/i18next/i18next.js"></script>
+	<script src="../libs/jstree/jstree.js"></script>
+	<script src="../build/potree/potree.js"></script>
+	<script src="../libs/plasio/js/laslaz.js"></script>
+
+	<div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0px; top: 0px; ">
+		<div id="potree_render_area" style="background-image: url('../build/potree/resources/images/background.jpg');">
+		</div>
+		<div id="potree_sidebar_container"> </div>
+	</div>
+
+	<script type="module">
+
+		import * as THREE from "../libs/three.js/build/three.module.js";
+		import {PLYLoader} from "../libs/three.js/loaders/PLYLoader.js";
+
+		window.viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
+
+		viewer.setEDLEnabled(true);
+		viewer.setFOV(60);
+		viewer.setPointBudget(5_000_000);
+		viewer.loadSettingsFromURL();
+
+		viewer.setDescription("");
+
+		viewer.loadGUI(() => {
+			viewer.setLanguage('en');
+			//$("#menu_appearance").next().show();
+			$("#menu_tools").next().show();
+			$("#menu_scene").next().show();
+			$("#menu_filters").next().show();
+			viewer.toggleSidebar();
+		});
+
+		Potree.loadPointCloud("https://storage-kubernetes.iict-heig-vd.in:9000/nearai/data/acquisitions/Vevey/06_point_clouds/potree/metadata.json", "vevey", async function (e) {
+			viewer.scene.addPointCloud(e.pointcloud);
+			let material = e.pointcloud.material;
+			material.size = 0.7;
+			material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
+			material.activeAttributeName = "rgba";
+			viewer.fitToScreen();
+
+			{ // load road surface mesh (PLY)
+				proj4.defs("pointcloud", viewer.getProjection());
+				proj4.defs("EPSG:2056", "+proj=somerc +lat_0=46.9524055555556 +lon_0=7.43958333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs +type=crs");
+				const toPC = proj4("EPSG:2056", "pointcloud");
+
+				const loader = new PLYLoader();
+				loader.load("https://storage-kubernetes.iict-heig-vd.in:9000/nearai/data/acquisitions/Vevey/06_point_clouds/potree/road_surface.ply", function (geometry) {
+					const pos = geometry.attributes.position;
+					for (let i = 0; i < pos.count; i++) {
+						const src = [pos.getX(i), pos.getY(i)];
+						const dst = toPC.forward(src);
+						pos.setX(i, dst[0]);
+						pos.setY(i, dst[1]);
+					}
+					pos.needsUpdate = true;
+					geometry.computeVertexNormals();
+
+					const material = new THREE.MeshBasicMaterial({
+						color: 0x4488cc,
+						transparent: true,
+						opacity: 0.7,
+						side: THREE.DoubleSide,
+						depthWrite: false,
+					});
+					const mesh = new THREE.Mesh(geometry, material);
+					mesh.name = "road_surface";
+					viewer.scene.scene.add(mesh);
+
+					viewer.onGUILoaded(() => {
+						let tree = $(`#jstree_scene`);
+						let parentNode = "other";
+
+						let nodeID = tree.jstree('create_node', parentNode, {
+								text: "Road Surface",
+								icon: `${Potree.resourcePath}/icons/triangle.svg`,
+								data: mesh,
+							},
+							"last", false, false);
+						tree.jstree(mesh.visible ? "check_node" : "uncheck_node", nodeID);
+					});
+				});
+			}
+			{ // load a geopackage
+				proj4.defs("pointcloud", viewer.getProjection());
+				proj4.defs("EPSG:2056", "+proj=somerc +lat_0=46.9524055555556 +lon_0=7.43958333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs +type=crs");
+				const params = {
+					transform: proj4("EPSG:2056", "pointcloud"),
+				};
+
+				const url = "https://storage-kubernetes.iict-heig-vd.in:9000/nearai/data/acquisitions/Vevey/06_point_clouds/potree/road_markings_3d.gpkg";
+				const geopackage = await Potree.GeoPackageLoader.loadUrl(url, params);
+				viewer.scene.addGeopackage(geopackage);
+			}
+			{ // load a geopackage
+				proj4.defs("pointcloud", viewer.getProjection());
+				proj4.defs("EPSG:2056", "+proj=somerc +lat_0=46.9524055555556 +lon_0=7.43958333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs +type=crs");
+				const params = {
+					transform: proj4("EPSG:2056", "pointcloud"),
+				};
+
+				const url = "https://storage-kubernetes.iict-heig-vd.in:9000/nearai/data/acquisitions/Vevey/06_point_clouds/potree/optimized_objects_3d.gpkg";
+				const geopackage = await Potree.GeoPackageLoader.loadUrl(url);
+				viewer.scene.addGeopackage(geopackage);
+			}
+
+			run();
+		});
+
+	async function run() {
+		proj4.defs("EPSG:2056", "+proj=somerc +lat_0=46.9524055555556 +lon_0=7.43958333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs +type=crs");
+
+		// --- Configure 360° URLs here (edit this file; not editable in the browser) ---
+		// coordinates.txt is loaded from: IMAGES_BASE_URL + "/coordinates.txt"
+		// Each row's File column is relative to IMAGES_BASE_URL.
+		// If LABELS_BASE_URL is non-empty, labels use the same relative paths under that base.
+		const IMAGES_BASE_URL = "https://storage-kubernetes.iict-heig-vd.in:9000/nearai/data/acquisitions/Vevey/01_images";
+		const LABELS_BASE_URL = "https://storage-kubernetes.iict-heig-vd.in:9000/nearai/data/acquisitions/Vevey/10_labels"; // optional, e.g. ".../01_labels"
+
+		const imagesBaseUrl = IMAGES_BASE_URL.trim();
+		if (!imagesBaseUrl) {
+			console.error("Set IMAGES_BASE_URL in NeoCapture.html (coordinates.txt + File paths are relative to it).");
+			viewer.mapView.showSources(true);
+			return;
+		}
+
+		let params = {
+			transform: { forward: a => a },
+			coordinatesFile: "coordinates.txt",
+			labelsBaseUrl: LABELS_BASE_URL.trim() || undefined,
+		};
+
+		try {
+			const images360 = await Potree.Images360Loader.load(imagesBaseUrl, viewer, params);
+			viewer.scene.add360Images(images360);
+			console.log(`✓ Loaded ${images360.images.length} 360° images`);
+		} catch (error) {
+			console.error("✗ Error loading 360 images:", error);
+		}
+
+		viewer.mapView.showSources(true);
+	}
+
+
+	</script>
+</body>
+
+</html>
