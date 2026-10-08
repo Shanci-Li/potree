@@ -1,4 +1,3 @@
-
 export * from "./Actions.js";
 export * from "./AnimationPath.js";
 export * from "./Annotation.js";
@@ -30,6 +29,7 @@ export * from "./materials/Gradients.js";
 export * from "./materials/NormalizationEDLMaterial.js";
 export * from "./materials/NormalizationMaterial.js";
 export * from "./materials/PointCloudMaterial.js";
+export * from "./materials/DepthMaterial.js";
 
 export * from "./loader/POCLoader.js";
 export * from "./modules/loader/2.0/OctreeLoader.js";
@@ -112,13 +112,57 @@ if (document.currentScript && document.currentScript.src) {
 	if (scriptPath.slice(-1) === '/') {
 		scriptPath = scriptPath.slice(0, -1);
 	}
-} else if(import.meta){
+} else if(import.meta && import.meta.url){
 	scriptPath = new URL(import.meta.url + "/..").href;
 	if (scriptPath.slice(-1) === '/') {
 		scriptPath = scriptPath.slice(0, -1);
 	}
 }else {
-	console.error('Potree was unable to find its script path using document.currentScript. Is Potree included with a script tag? Does your browser support this function?');
+	console.warn('Potree was unable to find its script path using document.currentScript or import.meta.url. Trying fallback methods.');
+	
+	// Fallback method 1: Use a stack trace to find the script URL
+	try {
+		throw new Error();
+	} catch(e) {
+		const stackLines = e.stack.split('\n');
+		let scriptSrcLine = stackLines.find(line => line.includes('potree.js') || line.includes('potree.module.js'));
+		
+		if (scriptSrcLine) {
+			const srcMatch = scriptSrcLine.match(/(https?:\/\/[^\/]+\/.*?\/potree\/.*?\.js)/);
+			if (srcMatch && srcMatch[1]) {
+				const scriptSrc = srcMatch[1];
+				scriptPath = new URL(scriptSrc + '/..').href;
+				if (scriptPath.slice(-1) === '/') {
+					scriptPath = scriptPath.slice(0, -1);
+				}
+				console.log('Potree found script path using stack trace:', scriptPath);
+			}
+		}
+	}
+	
+	// Fallback method 2: Try to guess the path
+	if (!scriptPath) {
+		// Look for any script tags loading potree
+		const scripts = document.getElementsByTagName('script');
+		for (let script of scripts) {
+			if (script.src && (script.src.includes('potree.js') || script.src.includes('potree.module.js'))) {
+				scriptPath = new URL(script.src + '/..').href;
+				if (scriptPath.slice(-1) === '/') {
+					scriptPath = scriptPath.slice(0, -1);
+				}
+				console.log('Potree found script path by examining script tags:', scriptPath);
+				break;
+			}
+		}
+	}
+	
+	// Final fallback: Use a default path
+	if (!scriptPath) {
+		console.error('Potree could not determine the script path. Using default "/build/potree".');
+		const fullUrl = new URL(window.location.href);
+		const baseUrl = `${fullUrl.protocol}//${fullUrl.host}`;
+		scriptPath = `${baseUrl}/build/potree`;
+	}
 }
 
 let resourcePath = scriptPath + '/resources';

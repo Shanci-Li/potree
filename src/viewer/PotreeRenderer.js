@@ -81,6 +81,9 @@ export class PotreeRenderer {
 		
 		// render scene
 		renderer.render(viewer.scene.scene, camera);
+		if(viewer.scene.sceneOverlay){
+			renderer.render(viewer.scene.sceneOverlay, camera);
+		}
 
 		viewer.dispatchEvent({type: "render.pass.scene",viewer: viewer});
 		

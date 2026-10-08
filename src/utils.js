@@ -979,15 +979,29 @@ export class Utils {
 		return azimuth;
 	}
 
-	static async loadScript(url){
+	/**
+	 * One promise per URL, settled when the script has actually run.
+	 *
+	 * This used to resolve at once whenever a <script> with this id already
+	 * existed -- including one still downloading. The first GeoPackage layer
+	 * ticked starts the 6 MB geopackage.js; a layer from another file ticked
+	 * during that download then went straight on to `initSqlJs`, threw
+	 * "initSqlJs is not defined", and stayed ticked with nothing drawn.
+	 */
+	static loadScript(url){
 
-		return new Promise( resolve => {
+		Utils._scripts = Utils._scripts || new Map();
 
-			const element = document.getElementById(url);
+		if(!Utils._scripts.has(url)){
+			const p = new Promise( (resolve, reject) => {
 
-			if(element){
-				resolve();
-			}else{
+				// A tag this helper did not add (e.g. written into the page)
+				// is taken as loaded, as before.
+				if(document.getElementById(url)){
+					resolve();
+					return;
+				}
+
 				const script = document.createElement("script");
 
 				script.id = url;
@@ -995,11 +1009,21 @@ export class Utils {
 				script.onload = () => {
 					resolve();
 				};
+				// Forget a failed load so the next caller retries it, rather
+				// than waiting forever on a promise that will never settle.
+				script.onerror = () => {
+					Utils._scripts.delete(url);
+					script.remove();
+					reject(new Error(`failed to load script ${url}`));
+				};
 				script.src = url;
 
 				document.body.appendChild(script);
-			}
-		});
+			});
+			Utils._scripts.set(url, p);
+		}
+
+		return Utils._scripts.get(url);
 	}
 
 	static createSvgGradient(scheme){

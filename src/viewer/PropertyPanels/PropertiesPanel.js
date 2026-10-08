@@ -9,6 +9,7 @@ import {Volume, BoxVolume, SphereVolume} from "../../utils/Volume.js";
 import {CameraAnimation} from "../../modules/CameraAnimation/CameraAnimation.js";
 import {PointSizeType, PointShape, ElevationGradientRepeat} from "../../defines.js";
 import {Gradients} from "../../materials/Gradients.js";
+import {DepthCurve} from "../../materials/PointCloudMaterial.js";
 
 import {MeasurePanel} from "./MeasurePanel.js";
 import {DistancePanel} from "./DistancePanel.js";
@@ -244,6 +245,25 @@ export class PropertiesPanel{
 					</div>
 				</div>
 
+				<div id="materials.depth_container">
+					<div class="divider">
+						<span>Depth</span>
+					</div>
+
+					<li><label><input id="chkDepthAutoRange" type="checkbox" />Auto range from visible points</label></li>
+					<li>Range: <span id="lblDepthRange"></span> <div id="sldDepthRange"></div></li>
+					<li>
+						<selectgroup id="depth_curve_option">
+							<option id="depth_curve_linear" value="LINEAR">Linear</option>
+							<option id="depth_curve_gamma" value="GAMMA">Gamma</option>
+							<option id="depth_curve_log" value="LOG">Log</option>
+							<option id="depth_curve_equalized" value="EQUALIZED">Equalized</option>
+						</selectgroup>
+					</li>
+					<li id="materials.depth_gamma_container">Gamma: <span id="lblDepthGamma"></span> <div id="sldDepthGamma"></div></li>
+					<li><label><input id="chkDepthInvert" type="checkbox" />Near points dark</label></li>
+				</div>
+
 
 				</ul>
 			</div>
@@ -385,6 +405,104 @@ export class PropertiesPanel{
 			update();
 		}
 
+		{ // DEPTH colour mode: auto/manual range, tone curve
+			let blockDepth = panel.find('#materials\\.depth_container');
+			let chkAutoRange = panel.find('#chkDepthAutoRange');
+			let sldRange = panel.find('#sldDepthRange');
+			let lblRange = panel.find('#lblDepthRange');
+			let elCurve = panel.find('#depth_curve_option');
+			let blockGamma = panel.find('#materials\\.depth_gamma_container');
+			let sldGamma = panel.find('#sldDepthGamma');
+			let lblGamma = panel.find('#lblDepthGamma');
+			let chkInvert = panel.find('#chkDepthInvert');
+
+			let formatDepth = (depth) => {
+				if(depth < 10){
+					return `${depth.toFixed(2)} m`;
+				}else if(depth < 1000){
+					return `${depth.toFixed(1)} m`;
+				}else{
+					return `${(depth / 1000).toFixed(2)} km`;
+				}
+			};
+
+			// The range slider works on log10(metres), so that street-level and
+			// overview depths both get room. It starts at 10 cm and grows when
+			// the range in use exceeds it.
+			let diagonal = pointcloud.pcoGeometry.boundingBox.getSize(new THREE.Vector3()).length();
+			sldRange.slider({
+				range: true,
+				min: -1,
+				max: Math.log10(Math.max(10, 4 * diagonal)),
+				step: 0.001,
+				values: [-1, 0],
+				slide: (event, ui) => {
+					// only the dragged end changes; the other keeps its exact value
+					let range = [...material.depthRangeInUse];
+					range[ui.handleIndex] = 10 ** ui.value;
+
+					material.depthRange = range; // switches the auto range off
+				}
+			});
+
+			sldGamma.slider({
+				value: material.depthGamma,
+				min: 0.2, max: 3, step: 0.01,
+				slide: (event, ui) => {material.depthGamma = ui.value}
+			});
+
+			elCurve.selectgroup({title: "Curve"});
+			elCurve.find("input").click( (e) => {
+				material.depthCurve = DepthCurve[e.target.value];
+			});
+
+			chkAutoRange.click(() => {
+				material.depthAutoRange = chkAutoRange.prop("checked");
+			});
+
+			chkInvert.click(() => {
+				material.depthInvert = chkInvert.prop("checked");
+			});
+
+			let updateRange = () => {
+				let [near, far] = material.depthRangeInUse;
+				let [a, b] = [Math.log10(Math.max(near, 0.1)), Math.log10(Math.max(far, 0.1))];
+				let max = Math.max(sldRange.slider("option", "max"), b);
+
+				lblRange.html(`${formatDepth(near)} to ${formatDepth(far)}`);
+				sldRange.slider({max: max, values: [a, b]});
+			};
+
+			let update = () => {
+				chkAutoRange.prop("checked", material.depthAutoRange);
+				chkInvert.prop("checked", material.depthInvert);
+
+				let curve = Object.keys(DepthCurve).find(key => DepthCurve[key] === material.depthCurve);
+				let elCurveInput = elCurve.find(`input[value=${curve}]`);
+				if(!elCurveInput.prop("checked")){
+					elCurveInput.trigger("click");
+				}
+
+				blockGamma.css('display', material.depthCurve === DepthCurve.GAMMA ? 'block' : 'none');
+				lblGamma.html(material.depthGamma.toFixed(2));
+				sldGamma.slider({value: material.depthGamma});
+
+				updateRange();
+			};
+
+			// shown for the "depth" attribute only; follows the attribute selection
+			let updateVisibility = () => {
+				blockDepth.css('display', material.activeAttributeName === "depth" ? 'block' : 'none');
+			};
+
+			this.addVolatileListener(material, "depth_settings_changed", update);
+			this.addVolatileListener(material, "depth_range_changed", updateRange);
+			this.addVolatileListener(material, "active_attribute_changed", updateVisibility);
+
+			update();
+			updateVisibility();
+		}
+
 		{
 
 			const attributes = pointcloud.pcoGeometry.pointAttributes.attributes;
@@ -399,6 +517,7 @@ export class PropertiesPanel{
 			}
 
 			options.push(
+				"depth",
 				"elevation",
 				"color",
 				'matcap',
@@ -517,6 +636,8 @@ export class PropertiesPanel{
 					blockIntensity.css('display', 'block');
 				} else if (selectedValue === 'intensity gradient') {
 					blockIntensity.css('display', 'block');
+				} else if (selectedValue === "depth" ){
+					// the depth block shows itself on "active_attribute_changed"
 				} else if (selectedValue === "indices" ){
 					blockIndex.css('display', 'block');
 				} else if (selectedValue === "matcap" ){

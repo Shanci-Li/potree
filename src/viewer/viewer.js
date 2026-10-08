@@ -5,6 +5,7 @@ import {Renderer} from "../PotreeRenderer.js";
 import {PotreeRenderer} from "./PotreeRenderer.js";
 import {EDLRenderer} from "./EDLRenderer.js";
 import {HQSplatRenderer} from "./HQSplatRenderer.js";
+import {DepthRangeEstimator} from "./DepthRangeEstimator.js";
 import {Scene} from "./Scene.js";
 import {ClippingTool} from "../utils/ClippingTool.js";
 import {TransformationTool} from "../utils/TransformationTool.js";
@@ -216,6 +217,7 @@ export class Viewer extends EventDispatcher{
 		}
 		
 		this.pRenderer = new Renderer(this.renderer);
+		this.depthRangeEstimator = new DepthRangeEstimator(this);
 		
 		{
 			let near = 2.5;
@@ -2033,6 +2035,12 @@ export class Viewer extends EventDispatcher{
 			// }
 		}
 		
+		// The point-cloud loop sets a per-eye viewport; anything drawn after it
+		// inherits the last eye's. Remember the full one so the overlay pass can
+		// put it back.
+		const fullViewport = new THREE.Vector4();
+		renderer.getViewport(fullViewport);
+
 		// render point clouds
 		for(let xrCamera of xrCameras.cameras){
 
@@ -2065,6 +2073,30 @@ export class Viewer extends EventDispatcher{
 				viewOverride: vrView,
 			});
 
+		}
+
+		{ // vector layers, AFTER the point clouds
+			// `sceneOverlay` exists so vectors are drawn on top of the cloud, so
+			// this pass has to come after the point-cloud loop -- placing it
+			// before would defeat the whole point, exactly as drawing into
+			// `scene.scene` does under EDL.
+			//
+			// It must reuse the camera and view matrix the world scene was
+			// rendered with, NOT a fresh `makeCam()`. That camera carries a
+			// `position.z -= 0.8 * scale` offset, so recomputing the matrix
+			// here puts the vectors 0.8 scale-units away from the cloud they
+			// are supposed to lie on.
+			if(this.scene.sceneOverlay && cam && view){
+				renderer.setViewport(fullViewport);
+				const ov = this.scene.sceneOverlay;
+				ov.updateMatrix();
+				ov.updateMatrixWorld();
+				ov.matrixAutoUpdate = false;
+				ov.matrix.copy(view);
+				ov.matrixWorld.copy(view);
+				renderer.render(ov, cam);
+				ov.matrixWorld.identity();
+			}
 		}
 
 		{ // render VR scene
@@ -2105,6 +2137,9 @@ export class Viewer extends EventDispatcher{
 			scene.cameraScreenSpace.bottom = -1/aspect;
 			scene.cameraScreenSpace.updateProjectionMatrix();
 		}
+
+		// grey range of point clouds in the "depth" colour mode, from the visible depths
+		this.depthRangeEstimator.update(this.scene.getActiveCamera());
 
 		pRenderer.clear();
 

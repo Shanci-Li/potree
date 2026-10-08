@@ -29,6 +29,20 @@ uniform float uScreenHeight;
 uniform float fov;
 uniform float near;
 uniform float far;
+uniform vec2 uDepthRange;
+
+#if defined(color_type_depth) && !defined(depth_export_pass) && !defined(depth_probe_pass)
+	// "depth" colour mode, see getDepthShade()
+	#define DEPTH_CURVE_LINEAR 0
+	#define DEPTH_CURVE_GAMMA 1
+	#define DEPTH_CURVE_LOG 2
+	#define DEPTH_CURVE_EQUALIZED 3
+
+	uniform int uDepthCurve;
+	uniform float uDepthGamma;
+	uniform bool uDepthInvert;
+	uniform float uDepthQuantiles[17];
+#endif
 
 uniform bool uDebug;
 
@@ -600,6 +614,66 @@ vec3 getExtra(){
 	return color;
 }
 
+#if defined(color_type_depth) && !defined(depth_export_pass) && !defined(depth_probe_pass)
+// Grey value of a view-space depth in metres: uDepthRange is mapped to [0, 1]
+// through the selected curve, near is white (black with uDepthInvert).
+// The equalized curve is piecewise linear through uDepthQuantiles, the depths
+// at 0, 1/16, ..., 16/16 of the visible depth distribution inside the range.
+// Keep in sync with the copy in pointcloud.fs.
+float getDepthShade(float depth){
+	float near = uDepthRange.x;
+	float far = max(uDepthRange.y, near + 0.000001);
+	float t;
+
+	if(uDepthCurve == DEPTH_CURVE_LOG){
+		float n = max(near, 0.001);
+		t = log(max(depth, n) / n) / log(max(far, n * 1.000001) / n);
+	}else if(uDepthCurve == DEPTH_CURVE_EQUALIZED){
+		t = 0.0;
+		for(int i = 0; i < 16; i++){
+			float a = uDepthQuantiles[i];
+			float b = uDepthQuantiles[i + 1];
+			t += clamp((depth - a) / max(b - a, 0.000001), 0.0, 1.0);
+		}
+		t = t / 16.0;
+	}else{
+		t = clamp((depth - near) / (far - near), 0.0, 1.0);
+
+		if(uDepthCurve == DEPTH_CURVE_GAMMA){
+			t = pow(t, uDepthGamma);
+		}
+	}
+
+	t = clamp(t, 0.0, 1.0);
+
+	return uDepthInvert ? t : 1.0 - t;
+}
+#endif
+
+#if defined(depth_probe_pass)
+// Probe pass of the depth auto range (DepthRangeEstimator.js, keep the
+// DEPTH_PROBE_LOG_* constants in sync): ln of the view-space depth, quantised
+// to 24 bits and split into the RGB bytes of an RGBA8 target, which every
+// WebGL device can render to and read back. Code 0, the clear colour, is left
+// for pixels without a point.
+#define DEPTH_PROBE_LOG_MIN (-10.0)
+#define DEPTH_PROBE_LOG_MAX (20.0)
+
+vec3 packProbeDepth(float depth){
+	if(depth <= 0.0){
+		return vec3(0.0);
+	}
+
+	float t = clamp((log(depth) - DEPTH_PROBE_LOG_MIN) / (DEPTH_PROBE_LOG_MAX - DEPTH_PROBE_LOG_MIN), 0.0, 1.0);
+	float code = floor(1.0 + t * 16777214.0);	// 1 to 2^24 - 1: integers, exact in highp
+	float high = floor(code / 65536.0);
+	float middle = floor((code - high * 65536.0) / 256.0);
+	float low = code - high * 65536.0 - middle * 256.0;
+
+	return vec3(high, middle, low) / 255.0;
+}
+#endif
+
 vec3 getColor(){
 	vec3 color;
 	
@@ -611,10 +685,16 @@ vec3 getColor(){
 		vec3 cHeight = getElevation();
 		color = (1.0 - uTransition) * getRGB() + uTransition * cHeight;
 	#elif defined color_type_depth
-		float linearDepth = gl_Position.w;
-		float expDepth = (gl_Position.z / gl_Position.w) * 0.5 + 0.5;
-		color = vec3(linearDepth, expDepth, 0.0);
-		//color = vec3(1.0, 0.5, 0.3);
+		#if defined depth_export_pass
+			float linearDepth = gl_Position.w;
+			color = vec3(linearDepth);
+		#elif defined depth_probe_pass
+			// packed depth for the auto range, written at the end of main()
+			color = vec3(0.0);
+		#else
+			// view-space depth rather than gl_Position.w: also valid for orthographic cameras
+			color = vec3(getDepthShade(-vViewPosition.z));
+		#endif
 	#elif defined color_type_intensity
 		float w = getIntensity();
 		color = vec3(w, w, w);
@@ -977,5 +1057,10 @@ void main() {
 
 		}
 
+	#endif
+
+	#if defined(depth_probe_pass)
+		// last, so that clip highlighting, clip spheres and shadows cannot alter the code
+		vColor = packProbeDepth(-vViewPosition.z);
 	#endif
 }

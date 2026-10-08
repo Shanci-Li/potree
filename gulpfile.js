@@ -66,6 +66,8 @@ let shaders = [
 	"src/materials/shaders/pointcloud.fs",
 	"src/materials/shaders/pointcloud_sm.vs",
 	"src/materials/shaders/pointcloud_sm.fs",
+	"src/materials/shaders/depth.vs",
+	"src/materials/shaders/depth.fs",
 	"src/materials/shaders/normalize.vs",
 	"src/materials/shaders/normalize.fs",
 	"src/materials/shaders/normalize_and_edl.fs",
@@ -80,6 +82,7 @@ let shaders = [
 gulp.task('webserver', gulp.series(async function() {
 	server = connect.server({
 		port: 1234,
+		host: '0.0.0.0',
 		https: false,
 	});
 }));

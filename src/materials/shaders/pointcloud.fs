@@ -21,6 +21,50 @@ uniform float fov;
 uniform float uSpacing;
 uniform float near;
 uniform float far;
+uniform vec2 uDepthRange;
+
+#if defined(paraboloid_point_shape) && defined(color_type_depth) && !defined(depth_export_pass) && !defined(depth_probe_pass)
+	#define DEPTH_CURVE_LINEAR 0
+	#define DEPTH_CURVE_GAMMA 1
+	#define DEPTH_CURVE_LOG 2
+	#define DEPTH_CURVE_EQUALIZED 3
+
+	uniform int uDepthCurve;
+	uniform float uDepthGamma;
+	uniform bool uDepthInvert;
+	uniform float uDepthQuantiles[17];
+
+	// Copy of getDepthShade() in pointcloud.vs, for the per-fragment depth of paraboloids.
+	float getDepthShade(float depth){
+		float near = uDepthRange.x;
+		float far = max(uDepthRange.y, near + 0.000001);
+		float t;
+
+		if(uDepthCurve == DEPTH_CURVE_LOG){
+			float n = max(near, 0.001);
+			t = log(max(depth, n) / n) / log(max(far, n * 1.000001) / n);
+		}else if(uDepthCurve == DEPTH_CURVE_EQUALIZED){
+			t = 0.0;
+			for(int i = 0; i < 16; i++){
+				float a = uDepthQuantiles[i];
+				float b = uDepthQuantiles[i + 1];
+				t += clamp((depth - a) / max(b - a, 0.000001), 0.0, 1.0);
+			}
+			t = t / 16.0;
+		}else{
+			t = clamp((depth - near) / (far - near), 0.0, 1.0);
+
+			if(uDepthCurve == DEPTH_CURVE_GAMMA){
+				t = pow(t, uDepthGamma);
+			}
+		}
+
+		t = clamp(t, 0.0, 1.0);
+
+		return uDepthInvert ? t : 1.0 - t;
+	}
+#endif
+
 uniform float uPCIndex;
 uniform float uScreenWidth;
 uniform float uScreenHeight;
@@ -72,8 +116,11 @@ void main() {
 		gl_FragDepthEXT = depth;
 		
 		#if defined(color_type_depth)
-			color.r = linearDepth;
-			color.g = expDepth;
+			#if defined(depth_export_pass)
+				gl_FragColor.rgb = vec3(linearDepth);
+			#elif !defined(depth_probe_pass)
+				gl_FragColor.rgb = vec3(getDepthShade(linearDepth));
+			#endif
 		#endif
 		
 		#if defined(use_edl)

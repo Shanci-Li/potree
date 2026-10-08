@@ -6,6 +6,14 @@ import {Shaders} from "../../build/shaders/shaders.js";
 import {ClassificationScheme} from "./ClassificationScheme.js";
 import {PointSizeType, PointShape, TreeType, ElevationGradientRepeat} from "../defines.js";
 
+// Tone curves of the "depth" colour mode; values match DEPTH_CURVE_* in pointcloud.vs/.fs.
+export const DepthCurve = {
+	LINEAR: 0,
+	GAMMA: 1,		// linear, then raised to material.depthGamma
+	LOG: 2,
+	EQUALIZED: 3,	// histogram equalization of the visible depths
+};
+
 //
 // how to calculate the radius of a projected sphere in screen space
 // http://stackoverflow.com/questions/21648630/radius-of-projected-sphere-in-screen-space
@@ -57,6 +65,15 @@ export class PointCloudMaterial extends THREE.RawShaderMaterial {
 		this._defaultIntensityRangeChanged = false;
 		this._defaultElevationRangeChanged = false;
 
+		// "depth" colour mode. With depthAutoRange, the viewer's DepthRangeEstimator
+		// fits the grey range to the visible depths each frame and sets
+		// depthRangeEstimated; otherwise the manual depthRange [near, far] is used.
+		// The range in use is uniforms.uDepthRange (see depthRangeInUse); it holds
+		// [0.1, 1.0] until the material is first drawn in depth mode.
+		this._depthAutoRange = true;
+		this._depthRange = null;
+		this.depthRangeEstimated = false;
+
 		{
 			const [width, height] = [256, 1];
 			let data = new Uint8Array(width * 4);
@@ -90,6 +107,11 @@ export class PointCloudMaterial extends THREE.RawShaderMaterial {
 			screenHeight:		{ type: "f", value: 1.0 },
 			near:				{ type: "f", value: 0.1 },
 			far:				{ type: "f", value: 1.0 },
+			uDepthRange:		{ type: "2fv", value: [0.1, 1.0] },
+			uDepthCurve:		{ type: "i", value: DepthCurve.LOG },
+			uDepthGamma:		{ type: "f", value: 0.5 },
+			uDepthInvert:		{ type: "b", value: false },
+			uDepthQuantiles:	{ type: "1fv", value: new Float32Array(17) },
 			uColor:				{ type: "c", value: new THREE.Color( 0xffffff ) },
 			uOpacity:			{ type: "f", value: 1.0 },
 			size:				{ type: "f", value: pointSize },
@@ -916,6 +938,103 @@ export class PointCloudMaterial extends THREE.RawShaderMaterial {
 				type: 'material_property_changed',
 				target: this
 			});
+		}
+	}
+
+	dispatchDepthSettingsChanged(){
+		this.dispatchEvent({type: 'depth_settings_changed', target: this});
+		this.dispatchEvent({type: 'material_property_changed', target: this});
+	}
+
+	// Grey range [near, far] in metres currently used by the "depth" colour mode.
+	// In auto mode the viewer's DepthRangeEstimator keeps it equal to the drawn
+	// range, also while it falls back to the visible node bounds.
+	get depthRangeInUse(){
+		return this.uniforms.uDepthRange.value;
+	}
+
+	// Takes over the "depth" colour mode settings and current range of `material`,
+	// for renderers that draw with a copy of the point cloud's material.
+	copyDepthSettings(material){
+		this._depthAutoRange = material._depthAutoRange;
+		this._depthRange = material._depthRange;
+		this.depthRangeEstimated = material.depthRangeEstimated;
+
+		for(const name of ["uDepthRange", "uDepthCurve", "uDepthGamma", "uDepthInvert", "uDepthQuantiles"]){
+			this.uniforms[name].value = material.uniforms[name].value;
+		}
+	}
+
+	get depthAutoRange(){
+		return this._depthAutoRange;
+	}
+
+	// Switching the auto range off keeps the range currently in use (depthRangeInUse).
+	set depthAutoRange(value){
+		if(this._depthAutoRange !== value){
+			this._depthAutoRange = value;
+
+			if(!value){
+				const [near, far] = this.uniforms.uDepthRange.value;
+				this._depthRange = [near, far];
+			}
+
+			this.dispatchDepthSettingsChanged();
+		}
+	}
+
+	// Manual [near, far] range in metres; setting it switches the auto range off.
+	get depthRange(){
+		return this._depthRange;
+	}
+
+	set depthRange(value){
+		const near = Math.max(0, value[0]);
+		const far = Math.max(value[1], near + 0.001);
+
+		if(!this._depthAutoRange && this._depthRange[0] === near && this._depthRange[1] === far){
+			return;
+		}
+
+		this._depthAutoRange = false;
+		this._depthRange = [near, far];
+		this.uniforms.uDepthRange.value = [near, far];
+
+		this.dispatchDepthSettingsChanged();
+	}
+
+	get depthCurve(){
+		return this.uniforms.uDepthCurve.value;
+	}
+
+	set depthCurve(value){
+		if(this.uniforms.uDepthCurve.value !== value){
+			this.uniforms.uDepthCurve.value = value;
+			this.dispatchDepthSettingsChanged();
+		}
+	}
+
+	// Exponent of DepthCurve.GAMMA; below 1 spreads the grey levels over the near depths.
+	get depthGamma(){
+		return this.uniforms.uDepthGamma.value;
+	}
+
+	set depthGamma(value){
+		if(this.uniforms.uDepthGamma.value !== value){
+			this.uniforms.uDepthGamma.value = value;
+			this.dispatchDepthSettingsChanged();
+		}
+	}
+
+	// false: near points are bright (default), true: near points are dark.
+	get depthInvert(){
+		return this.uniforms.uDepthInvert.value;
+	}
+
+	set depthInvert(value){
+		if(this.uniforms.uDepthInvert.value !== value){
+			this.uniforms.uDepthInvert.value = value;
+			this.dispatchDepthSettingsChanged();
 		}
 	}
 

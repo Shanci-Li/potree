@@ -1,9 +1,9 @@
-
 import * as THREE from "../libs/three.js/build/three.module.js";
 import {PointCloudTree} from "./PointCloudTree.js";
 import {PointCloudOctreeNode} from "./PointCloudOctree.js";
 import {PointCloudArena4DNode} from "./arena4d/PointCloudArena4D.js";
 import {PointSizeType, ClipTask, ElevationGradientRepeat} from "./defines.js";
+import {DepthCurve} from "./materials/PointCloudMaterial.js";
 
 // Copied from three.js: WebGLRenderer.js
 function paramThreeToGL(_gl, p) {
@@ -413,7 +413,6 @@ class Shader {
 	}
 
 	setUniform(name, value) {
-
 		if (value.constructor === THREE.Matrix4) {
 			this.setUniformMatrix4(name, value);
 		} else if (typeof value === "number") {
@@ -556,6 +555,8 @@ export class Renderer {
 		this.glTypeMapping.set(Uint16Array, this.gl.UNSIGNED_SHORT);
 
 		this.toggle = 0;
+		this.depthMaterials = new Map();
+		this.depthRenderTarget = null;
 	}
 
 	deleteBuffer(geometry) {
@@ -691,6 +692,86 @@ export class Renderer {
 		};
 
 		return result;
+	}
+
+	getCurrentViewDepthRange(octree, nodes, camera, params = {}){
+		let view = params.viewOverride ? params.viewOverride : camera.matrixWorldInverse;
+		let minDepth = Infinity;
+		let maxDepth = -Infinity;
+		let point = new THREE.Vector3();
+		let world = octree.matrixWorld;
+
+		for(const node of nodes){
+			if(!node || !node.getBoundingBox){
+				continue;
+			}
+
+			const box = node.getBoundingBox();
+			if(!box){
+				continue;
+			}
+
+			for(const x of [box.min.x, box.max.x]){
+				for(const y of [box.min.y, box.max.y]){
+					for(const z of [box.min.z, box.max.z]){
+						point.set(x, y, z).applyMatrix4(world).applyMatrix4(view);
+						const depth = -point.z;
+
+						if(Number.isFinite(depth) && depth > 0){
+							minDepth = Math.min(minDepth, depth);
+							maxDepth = Math.max(maxDepth, depth);
+						}
+					}
+				}
+			}
+		}
+
+		if(!Number.isFinite(minDepth) || !Number.isFinite(maxDepth)){
+			minDepth = camera.near;
+			maxDepth = camera.far;
+		}
+
+		minDepth = Math.max(camera.near, minDepth);
+		maxDepth = Math.min(camera.far, Math.max(maxDepth, minDepth + 0.000001));
+
+		if(maxDepth <= minDepth){
+			maxDepth = minDepth + 1;
+		}
+
+		return [minDepth, maxDepth];
+	}
+
+	// Uniforms of the "depth" colour mode (see getDepthShade() in pointcloud.vs).
+	// The range normally comes from the viewer's DepthRangeEstimator or the manual
+	// material.depthRange; params.depthRange overrides both. Without an estimate
+	// of the visible depths (renderer used without a Viewer, first frame), the
+	// auto range falls back to the bounds of the visible nodes.
+	setDepthShadeUniforms(shader, material, octree, nodes, camera, params){
+		const gl = this.gl;
+		const estimated = material.depthRangeEstimated === true;
+
+		let depthRange = material.uniforms.uDepthRange.value;
+		if(params.depthRange){
+			depthRange = params.depthRange;
+		}else if(material.depthAutoRange && !estimated){
+			depthRange = this.getCurrentViewDepthRange(octree, nodes, camera, params);
+		}
+
+		// equalization needs the depth distribution; without it, use the log curve
+		let curve = material.depthCurve;
+		if(curve === DepthCurve.EQUALIZED && !estimated){
+			curve = DepthCurve.LOG;
+		}
+
+		shader.setUniform2f("uDepthRange", depthRange);
+		shader.setUniform1i("uDepthCurve", curve);
+		shader.setUniform1f("uDepthGamma", material.depthGamma);
+		shader.setUniformBoolean("uDepthInvert", material.depthInvert);
+
+		const lQuantiles = shader.uniformLocations["uDepthQuantiles[0]"];
+		if(lQuantiles != null){
+			gl.uniform1fv(lQuantiles, material.uniforms.uDepthQuantiles.value);
+		}
 	}
 
 
@@ -964,7 +1045,6 @@ export class Renderer {
 				const attName = material.activeAttributeName;
 				const bufferAttribute = geometry.attributes[attName];
 				const vbo = webglBuffer.vbos.get(attName);
-
 				if(bufferAttribute !== undefined && vbo !== undefined){
 					let type = this.glTypeMapping.get(bufferAttribute.array.constructor);
 					let normalized = bufferAttribute.normalized;
@@ -973,9 +1053,6 @@ export class Renderer {
 					gl.vertexAttribPointer(attributeLocation, bufferAttribute.itemSize, type, normalized, 0, 0);
 					gl.enableVertexAttribArray(attributeLocation);
 				}
-
-
-
 
 				{
 					const attExtra = octree.pcoGeometry.pointAttributes.attributes
@@ -996,8 +1073,11 @@ export class Renderer {
 					let globalRange = range;
 					let globalRangeSize = globalRange[1] - globalRange[0];
 
-					let scale = initialRangeSize / globalRangeSize;
-					let offset = -(globalRange[0] - initialRange[0]) / initialRangeSize;
+					// let scale = initialRangeSize / globalRangeSize;
+					// let offset = -(globalRange[0] - initialRange[0]) / initialRangeSize;
+
+					let scale = 1.0 / globalRangeSize;
+					let offset = -globalRange[0];
 
 					scale = Number.isNaN(scale) ? 1 : scale;
 					offset = Number.isNaN(offset) ? 0 : offset;
@@ -1233,7 +1313,11 @@ export class Renderer {
 			shader.setUniform1f("fov", Math.PI * camera.fov / 180);
 			shader.setUniform1f("near", camera.near);
 			shader.setUniform1f("far", camera.far);
-			
+
+			if(material.activeAttributeName === "depth"){
+				this.setDepthShadeUniforms(shader, material, octree, nodes, camera, params);
+			}
+
 			if(camera instanceof THREE.OrthographicCamera){
 				shader.setUniform("uUseOrthographicCamera", true);
 				shader.setUniform("uOrthoWidth", camera.right - camera.left); 
@@ -1343,6 +1427,7 @@ export class Renderer {
 			shader.setUniform1i("gradient", currentTextureBindingPoint);
 			gl.activeTexture(gl.TEXTURE0 + currentTextureBindingPoint);
 			gl.bindTexture(gradientTexture.target, gradientTexture.id);
+			currentTextureBindingPoint++;
 
 			const repeat = material.elevationGradientRepeat;
 			if(repeat === ElevationGradientRepeat.REPEAT){
@@ -1439,9 +1524,187 @@ export class Renderer {
 		gl.activeTexture(gl.TEXTURE0);
 	}
 
+	// Create a depth render target for a given size.
+	initDepthRenderTarget(width, height) {
+		if (this.depthRenderTarget &&
+			this.depthRenderTarget.width === width &&
+			this.depthRenderTarget.height === height) {
+			return this.depthRenderTarget;
+		}
+
+		const params = {
+			minFilter: THREE.NearestFilter,
+			magFilter: THREE.NearestFilter,
+			format: THREE.RGBAFormat,
+			type: THREE.FloatType,
+			depthBuffer: true,
+			stencilBuffer: false,
+		};
+
+		if (this.depthRenderTarget) {
+			this.depthRenderTarget.dispose();
+		}
+
+		this.depthRenderTarget = new THREE.WebGLRenderTarget(width, height, params);
+		this.depthRenderTarget.texture.name = "Potree.DepthRenderTarget";
+
+		return this.depthRenderTarget;
+	}
+
+	// Temporarily switches the materials of `octrees` to a raw "depth" pass:
+	// passDefine "depth_export_pass" writes gl_Position.w (metric depth export),
+	// "depth_probe_pass" a packed ln(depth) code for the auto range
+	// (packProbeDepth() in pointcloud.vs).
+	withDepthAttribute(octrees, width, height, callback, passDefine = "depth_export_pass"){
+		const originalStates = [];
+
+		for(const octree of octrees){
+			const material = octree.material;
+
+			originalStates.push({
+				material: material,
+				activeAttributeName: material.activeAttributeName,
+				weighted: material.weighted,
+				useEDL: material.useEDL,
+				screenWidth: material.screenWidth,
+				screenHeight: material.screenHeight,
+				passDefine: material.defines ? material.defines.get(passDefine) : undefined,
+			});
+
+			if(material.disableEvents){
+				material.disableEvents();
+			}
+
+			material.activeAttributeName = "depth";
+			material.setDefine(passDefine, `#define ${passDefine}`);
+			material.weighted = false;
+			material.useEDL = false;
+			material.screenWidth = width;
+			material.screenHeight = height;
+
+			if(material.enableEvents){
+				material.enableEvents();
+			}
+		}
+
+		try{
+			return callback();
+		}finally{
+			for(const state of originalStates){
+				const material = state.material;
+
+				if(material.disableEvents){
+					material.disableEvents();
+				}
+
+				material.activeAttributeName = state.activeAttributeName;
+				if(state.passDefine === undefined){
+					material.removeDefine(passDefine);
+					material.updateShaderSource();
+				}else{
+					material.setDefine(passDefine, state.passDefine);
+				}
+				material.weighted = state.weighted;
+				material.useEDL = state.useEDL;
+				material.screenWidth = state.screenWidth;
+				material.screenHeight = state.screenHeight;
+
+				if(material.enableEvents){
+					material.enableEvents();
+				}
+			}
+		}
+	}
+
+	// Renders `octrees` with a raw depth pass (see withDepthAttribute) into
+	// `target`, cleared to 0, and restores the renderer state afterwards.
+	// `draw(params)` issues the renderOctree calls.
+	renderRawDepth(target, octrees, passDefine, draw){
+		const {width, height} = target;
+		const oldTarget = this.threeRenderer.getRenderTarget();
+		const oldViewport = this.threeRenderer.getViewport(new THREE.Vector4());
+		const oldClearColor = this.threeRenderer.getClearColor(new THREE.Color());
+		const oldClearAlpha = this.threeRenderer.getClearAlpha();
+
+		try{
+			this.threeRenderer.setRenderTarget(target);
+			this.threeRenderer.setViewport(0, 0, width, height);
+			this.threeRenderer.setClearColor(0x000000, 0);
+			this.threeRenderer.clear(true, true, true);
+
+			this.withDepthAttribute(octrees, width, height, () => draw({
+				transparent: false,
+				depthTest: true,
+				depthWrite: true,
+			}), passDefine);
+		}finally{
+			this.threeRenderer.setRenderTarget(oldTarget);
+			this.threeRenderer.setViewport(oldViewport);
+			this.threeRenderer.setClearColor(oldClearColor, oldClearAlpha);
+			this.threeRenderer.resetState();
+		}
+	}
+
+	// Render point-cloud linear depth into an offscreen float target.
+	renderDepthToTarget(scene, camera, width, height, params = {}) {
+		const target = this.initDepthRenderTarget(width, height);
+
+		const traversalResult = this.traverse(scene);
+		const octrees = traversalResult.octrees.filter(octree => octree.visible);
+
+		this.renderRawDepth(target, octrees, "depth_export_pass", passParams => {
+			for (const octree of octrees) {
+				const nodes = octree.visibleNodes;
+				this.renderOctree(octree, nodes, camera, target, {
+					...params,
+					...passParams,
+				});
+			}
+		});
+
+		return target;
+	}
+
+	// View-space depth of the visible points as a 24-bit ln(depth) code in the RGB
+	// bytes of the RGBA8 `target` (0 where there is no point, see packProbeDepth()
+	// in pointcloud.vs), for the auto range of the "depth" colour mode. At most
+	// `pointBudget` points are drawn per point cloud: visibleNodes is ordered by
+	// priority with parents first, so a prefix of it is a coarser but complete
+	// level of detail, and adaptive point sizes are computed for that prefix.
+	renderDepthProbe(octrees, camera, target, pointBudget){
+		this.renderRawDepth(target, octrees, "depth_probe_pass", passParams => {
+			for(const octree of octrees){
+				const nodes = [];
+				let numPoints = 0;
+
+				for(const node of octree.visibleNodes){
+					numPoints += node.getNumPoints();
+					if(numPoints > pointBudget && nodes.length > 0){
+						break;
+					}
+					nodes.push(node);
+				}
+
+				this.renderOctree(octree, nodes, camera, target, passParams);
+			}
+		});
+	}
+
+	// Backwards-compatible texture-returning wrapper.
+	renderDepth(scene, camera, width, height, params = {}) {
+		return this.renderDepthToTarget(scene, camera, width, height, params).texture;
+	}
+
 	render(scene, camera, target = null, params = {}) {
 
 		const gl = this.gl;
+
+		if (params.renderDepth) {
+			const width = params.depthWidth || this.threeRenderer.domElement.clientWidth;
+			const height = params.depthHeight || this.threeRenderer.domElement.clientHeight;
+
+			return this.renderDepth(scene, camera, width, height, params);
+		}
 
 		// PREPARE 
 		if (target != null) {
@@ -1468,16 +1731,9 @@ export class Renderer {
 		gl.bindVertexArray(null);
 
 		this.threeRenderer.resetState();
+
 	}
 
 
 
 };
-
-
-
-
-
-
-
-

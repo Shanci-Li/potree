@@ -328,6 +328,13 @@ export class EDLRenderer{
 
 		viewer.renderer.clearDepth();
 
+		// Vector layers, after the EDL composite. Drawing them before it -- as
+		// happens to everything in `scene.scene` -- means the full-screen
+		// composite paints the point cloud straight over them.
+		if(viewer.scene.sceneOverlay){
+			viewer.renderer.render(viewer.scene.sceneOverlay, camera);
+		}
+
 		viewer.transformationTool.update();
 
 		viewer.dispatchEvent({type: "render.pass.perspective_overlay",viewer: viewer});

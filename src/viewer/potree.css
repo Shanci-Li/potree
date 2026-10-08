@@ -413,6 +413,24 @@ body{
 	width: 		100% !important;
 }
 
+/* Lists of the dropdowns. sidebar.js fits their height into the window
+   (a long list scrolls); here they stay as wide as the window at most and
+   long entries wrap. The scrollbar is light like the list. */
+.ui-selectmenu-menu .ui-menu{
+	max-width:				calc(100vw - 16px);
+	overscroll-behavior:	contain;
+	scrollbar-color:		var(--color-1) #f0f0f0;
+	scrollbar-width:		thin;
+}
+
+.ui-selectmenu-menu .ui-menu::-webkit-scrollbar{
+	background-color:	#f0f0f0;
+}
+
+.ui-selectmenu-menu .ui-menu-item-wrapper{
+	overflow-wrap:	break-word;
+}
+
 .pv-menu-list > li > .ui-slider{
 	background-color: 	var(--color-1) !important;
 	background: 		none;

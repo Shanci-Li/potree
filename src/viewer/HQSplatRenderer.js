@@ -230,6 +230,7 @@ export class HQSplatRenderer{
 				attributeMaterial.weightSourceID = material.weightSourceID;
 
 				attributeMaterial.color = material.color;
+				attributeMaterial.copyDepthSettings(material);
 
 				attributeMaterial.clipTask = material.clipTask;
 				attributeMaterial.clipMethod = material.clipMethod;
@@ -301,6 +302,9 @@ export class HQSplatRenderer{
 		}
 
 		viewer.renderer.render(viewer.scene.scene, camera);
+		if(viewer.scene.sceneOverlay){
+			viewer.renderer.render(viewer.scene.sceneOverlay, camera);
+		}
 
 		viewer.dispatchEvent({type: "render.pass.scene", viewer: viewer});
 

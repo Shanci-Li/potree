@@ -19,6 +19,124 @@ import {Images360} from "../modules/Images360/Images360.js";
 
 import JSON5 from "../../libs/json5-2.1.3/json5.mjs";
 
+/**
+ * Makes the lists of jQuery UI selectmenus (the sidebar's dropdowns) fit into the window.
+ *
+ * jQuery UI opens a list below its button without looking at the viewport
+ * (position collision "none", no maximum height), in <body>, which does not
+ * scroll. A long list near the bottom of the window was therefore cut off: the
+ * "Attribute" list of a point cloud (20+ entries with extra attributes) lost its
+ * last entries even with the sidebar scrolled to its end, and opened entirely
+ * below the window when its button was at the bottom edge.
+ *
+ * A list that fits below its button still opens there. Otherwise it opens on the
+ * side with more room (below or above the button) and its height is capped to
+ * that room, so it scrolls, with the selected entry scrolled into view. Lists
+ * stay horizontally inside the window. While a list is open it follows its
+ * button when the sidebar scrolls or the window is resized, and it closes once
+ * the button is scrolled out of sight.
+ *
+ * This replaces the `position` option of every selectmenu with that placement.
+ */
+function fitSelectMenusToViewport(){
+	const base = $.ui && $.ui.selectmenu;
+	if(!base || base.prototype._fitsViewport){
+		// no jQuery UI, or already extended by an earlier sidebar
+		return;
+	}
+
+	const margin = 8;     // px kept free between a list and the window border
+	const minHeight = 48; // px, about two entries: a list is never squeezed further
+
+	$.widget("ui.selectmenu", base, {
+		_fitsViewport: true,
+
+		open(event){
+			const wasOpen = this.isOpen;
+			this._super(event);
+			if(!this.isOpen){
+				return;
+			}
+
+			this._scrollToActiveItem();
+
+			if(!wasOpen){
+				// the button moves when its scroll container (the sidebar) scrolls or the window resizes
+				this.scrollContainer = this.button.scrollParent();
+				this._on(this.scrollContainer, {scroll: "_followButton"});
+				this._on(this.window, {resize: "_followButton"});
+			}
+		},
+
+		close(event){
+			if(this.isOpen){
+				this._off(this.scrollContainer, "scroll");
+				this._off(this.window, "resize");
+			}
+
+			this._super(event);
+		},
+
+		_position(){
+			const menu = this.menu;
+			menu.css("max-height", "");
+
+			const viewHeight = document.documentElement.clientHeight;
+			const button = this.button[0].getBoundingClientRect();
+			const spaceBelow = viewHeight - margin - button.bottom;
+			const spaceAbove = button.top - margin;
+			const height = menu.outerHeight();
+
+			const above = height > spaceBelow && spaceAbove > spaceBelow;
+			const room = Math.max(minHeight, Math.floor(above ? spaceAbove : spaceBelow));
+
+			if(height > room){
+				menu.css("max-height", `${room}px`);
+			}
+			// the width depends on whether the list now has a scrollbar
+			this._resizeMenu();
+
+			this.menuWrap.position({
+				of: this.button,
+				my: above ? "left bottom" : "left top",
+				at: above ? "left top" : "left bottom",
+				collision: "fit none",
+			});
+		},
+
+		_followButton(event){
+			const button = this.button[0].getBoundingClientRect();
+			const container = this.scrollContainer[0];
+			const visible = container.getBoundingClientRect
+				? container.getBoundingClientRect()
+				: {top: 0, bottom: document.documentElement.clientHeight};
+
+			if(button.bottom <= visible.top || button.top >= visible.bottom){
+				this.close(event);
+			}else{
+				const scrollTop = this.menu.scrollTop();
+				this._position();
+				this.menu.scrollTop(scrollTop);
+			}
+		},
+
+		// jQuery UI focuses the selected entry while the list is still hidden,
+		// so a capped list would always start at its first entry.
+		_scrollToActiveItem(){
+			const menu = this.menu[0];
+			const active = this.menuInstance.active;
+			if(!active || !active.length || menu.scrollHeight <= menu.clientHeight){
+				return;
+			}
+
+			const item = active[0];
+			const offset = item.getBoundingClientRect().top - menu.getBoundingClientRect().top
+				- menu.clientTop + menu.scrollTop;
+			menu.scrollTop = offset - (menu.clientHeight - item.offsetHeight) / 2;
+		},
+	});
+}
+
 export class Sidebar{
 
 	constructor(viewer){
@@ -45,6 +163,9 @@ export class Sidebar{
 	}
 
 	init(){
+
+		// before any panel creates a dropdown
+		fitSelectMenusToViewport();
 
 		this.initAccordion();
 		this.initAppearance();
@@ -527,7 +648,20 @@ export class Sidebar{
 				// 	this.viewer.zoomTo(node, 1, 500);
 				// }
 			}else if(object instanceof Images360){
-				// TODO
+				if(object.focusedImage){
+					// in the 360° view: image -> label sets -> image, like a double click on the panorama
+					object.cycleDisplayMode();
+				}else if(object.images.length > 0){
+					let box = new THREE.Box3();
+					for(const image of object.images){
+						box.expandByPoint(new THREE.Vector3(...image.position));
+					}
+					if(box.getSize(new THREE.Vector3()).length() > 0){
+						let node = new THREE.Object3D();
+						node.boundingBox = box;
+						this.viewer.zoomTo(node, 1, 500);
+					}
+				}
 			}else if(object instanceof Geopackage){
 				// TODO
 			}
@@ -632,7 +766,11 @@ export class Sidebar{
 			const images = e.images;
 
 			const imagesIcon = `${Potree.resourcePath}/icons/picture.svg`;
-			const node = createNode(imagesID, "360° images", imagesIcon, images);
+			// the set's name, else the folder of its images ("a/./b.jpg" -> "a")
+			const folder = images.images.length > 0
+				? images.images[0].file.split('/').filter(s => s !== "" && s !== ".").slice(-2, -1)[0]
+				: "";
+			const node = createNode(imagesID, images.name || folder || "360° images", imagesIcon, images);
 
 			images.addEventListener("visibility_changed", () => {
 				if(images.visible){
@@ -658,6 +796,8 @@ export class Sidebar{
 						"icon": geopackageIcon,
 						"object": layer,
 						"data": layer,
+						// long layer names are clipped at the sidebar edge; show them in full on hover
+						"a_attr": { "title": name },
 					}, 
 					"last", false, false);
 				tree.jstree(layer.visible ? "check_node" : "uncheck_node", shpPointsID);

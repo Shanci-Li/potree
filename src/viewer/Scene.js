@@ -16,6 +16,12 @@ export class Scene extends EventDispatcher{
 		
 		this.scene = new THREE.Scene();
 		this.sceneBG = new THREE.Scene();
+		// Vector layers live here, not in `scene`, because every renderer
+		// draws `scene` BEFORE its point-cloud composite. Under EDL that
+		// composite is a full-screen pass, so anything drawn into `scene`
+		// is painted over by the cloud no matter what its depth state says.
+		// This one is rendered after the composite instead.
+		this.sceneOverlay = new THREE.Scene();
 		this.scenePointCloud = new THREE.Scene();
 
 		this.cameraP = new THREE.PerspectiveCamera(this.fov, 1, 0.1, 1000*1000);
@@ -189,7 +195,7 @@ export class Scene extends EventDispatcher{
 
 	addGeopackage(geopackage){
 		this.geopackages.push(geopackage);
-		this.scene.add(geopackage.node);
+		this.sceneOverlay.add(geopackage.node);
 
 		this.dispatchEvent({
 			'type': 'geopackage_added',

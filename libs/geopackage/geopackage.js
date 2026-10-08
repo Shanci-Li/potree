@@ -8360,11 +8360,15 @@ RTreeIndexDao.prototype._generateGeometryEnvelopeQuery = function(envelope) {
   }
   whereArgs.push(envelope.maxY, envelope.minY);
 
+  // Potree: quote the identifiers -- feature table names may contain spaces
+  // (e.g. "road marking from LiDAR DEM"), which broke this join with
+  // 'near ".": syntax error'.
+  var quote = function(name) { return '"' + String(name).replace(/"/g, '""') + '"'; };
   return {
-    join: 'inner join ' + tableName + ' on ' + tableName + '.' + this.featureDao.idColumns[0] + ' = ' + this.gpkgTableName+'.id',
+    join: 'inner join ' + quote(tableName) + ' on ' + quote(tableName) + '.' + quote(this.featureDao.idColumns[0]) + ' = ' + quote(this.gpkgTableName) + '.id',
     where,
     whereArgs,
-    tableNameArr: [tableName + '.*']
+    tableNameArr: [quote(tableName) + '.*']
   };
 };
 
@@ -56930,7 +56934,7 @@ process.umask = function() { return 0; };
 	var ENDED = -1;
 	var whitespace = /\s/;
 	var latin = /[A-Za-z]/;
-	var keyword = /[A-Za-z84]/;
+	var keyword = /[A-Za-z84_]/;
 	var endThings = /[,\]]/;
 	var digets = /[\d\.E\-\+]/;
 	// const ignoredChar = /[\s_\-\/\(\)]/g;
@@ -66984,7 +66988,15 @@ function reproject(geojson, from, to, projs) {
   }
 
   to = determineCrs(to, projs);
-  var transform = proj4(from, to).forward.bind(transform);
+  var transformFunc = proj4(from, to).forward.bind(transformFunc);
+  function transform(coords) {
+    var transformed = transformFunc(coords);
+    if (coords.length === 3 && coords[2] !== undefined && transformed[2] === undefined) {
+      // If the projection doesn't explicitly handle Z coordinate, retain the old one.
+      transformed[2] = coords[2];
+    }
+    return transformed;
+  }
 
   var transformGeometryCoords = function(gj) {
     // No easy way to put correct CRS info into the GeoJSON,
@@ -67244,7 +67256,7 @@ module.exports = {
 	var ENDED = -1;
 	var whitespace = /\s/;
 	var latin = /[A-Za-z]/;
-	var keyword = /[A-Za-z84]/;
+	var keyword = /[A-Za-z84_]/;
 	var endThings = /[,\]]/;
 	var digets = /[\d\.E\-\+]/;
 	// const ignoredChar = /[\s_\-\/\(\)]/g;

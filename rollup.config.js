@@ -1,13 +1,42 @@
+import nodeResolve from '@rollup/plugin-node-resolve';
+import commonjs from '@rollup/plugin-commonjs';
+
 export default [
 	{
 		input: 'src/Potree.js',
 		treeshake: false,
-		output: {
-			file: 'build/potree/potree.js',
-			format: 'umd',
-			name: 'Potree',
-			sourcemap: true,
-		}
+		output: [
+			{
+				file: 'build/potree/potree.js',
+				format: 'umd',
+				name: 'Potree',
+				sourcemap: true,
+				globals: {
+					'ws': 'WebSocket',
+					'http': 'http',
+					'path': 'path',
+					'fs': 'fs',
+					'url': 'url'
+				}
+			},
+			{
+				file: 'build/potree/potree.module.js',
+				format: 'esm',
+				sourcemap: true,
+				globals: {
+					'ws': 'WebSocket',
+					'http': 'http',
+					'path': 'path',
+					'fs': 'fs',
+					'url': 'url'
+				}
+			}
+		],
+		plugins: [
+			nodeResolve({ browser: true }),
+			commonjs()
+		],
+		external: ['ws', 'http', 'path', 'fs', 'url']
 	},{
 		input: 'src/workers/BinaryDecoderWorker.js',
 		output: {
