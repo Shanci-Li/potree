@@ -1,0 +1,62 @@
+# Potree project service: HTTP API behind nginx /api/ (server/project-server.mjs).
+# Converts point clouds with PotreeConverter and renders previews with headless
+# Chromium (Playwright). Install: see /mnt/Data2/potree/deploy/README.md.
+
+[Unit]
+Description=Potree project service (API for the /projects portal)
+Documentation=file:///mnt/Data2/potree/deploy/README.md
+After=network.target
+RequiresMountsFor=/mnt/Data2
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=sliadmin
+Group=sliadmin
+WorkingDirectory=/mnt/Data2/potree
+ExecStart=/usr/bin/node server/project-server.mjs
+
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=8090
+Environment=POTREE_ROOT=/mnt/Data2/potree
+Environment=POTREE_CONVERTER=/mnt/Data2/PotreeConverter/build/PotreeConverter
+# Folders the API may browse and import from. Narrow it to the data folders
+# that hold inputs (override in /etc/potree-projects.env, see below).
+Environment=ALLOWED_ROOTS=/mnt/Data2
+# Playwright looks for its browsers under $HOME/.cache/ms-playwright.
+Environment=HOME=/home/sliadmin
+Environment=PLAYWRIGHT_BROWSERS_PATH=/home/sliadmin/.cache/ms-playwright
+
+# Site-specific settings and secrets (root-only file, mode 600; "-" = optional):
+#   API_TOKEN=<random>      required for creating/editing projects; without it
+#                           the API is read-only (protected calls answer 503)
+#   MOVE_ROOTS=<dir>[:...]  enables importMode "move" for sources inside these
+#                           folders; unset/empty = move disabled (default)
+#   ALLOWED_ROOTS=<dir>[:...]  optional override of the value above
+# Values from this file override the Environment= lines above.
+EnvironmentFile=-/etc/potree-projects.env
+
+# Files the service writes itself (converter output, project.json, pages,
+# previews) are 664 / folders 775, readable by nginx (www-data). Copied
+# imports are made world-readable by the service; moved or symlinked sources
+# keep their own permissions and must be readable by www-data.
+UMask=0002
+Nice=5
+Restart=on-failure
+RestartSec=5s
+# Stopping/restarting also stops running PotreeConverter / Chromium children.
+TimeoutStopSec=30s
+
+# Light hardening only: PotreeConverter and Chromium need /mnt/Data2, $HOME,
+# /tmp, /dev/shm and the GPU device nodes, so no PrivateTmp/PrivateDevices/
+# ProtectHome. Playwright runs Chromium with --no-sandbox, which works with
+# NoNewPrivileges.
+NoNewPrivileges=true
+ProtectSystem=full
+
+SyslogIdentifier=potree-projects
+
+[Install]
+WantedBy=multi-user.target

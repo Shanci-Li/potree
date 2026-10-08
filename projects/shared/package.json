@@ -1,0 +1,6 @@
+{
+	"name": "potree-projects-shared",
+	"private": true,
+	"description": "Marks the shared project runtime as ES modules so Node (server/) can import crs.js.",
+	"type": "module"
+}

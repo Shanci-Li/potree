@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "autoinspect",
+  "title": "AutoInspect — power-line drone inspection",
+  "description": "Custom inspection viewer for a drone LiDAR survey of a high-voltage line in Valais (50.6 million points, UTM 32N). Toggle automatic-classification layers (pylons, cables, insulators, vegetation, water, buildings, ground types), browse 103 oriented DJI photos placed at their camera poses, and play the scripted camera flight.",
+  "keywords": [
+    "Drone LiDAR",
+    "Oriented images"
+  ],
+  "location": "Valais",
+  "date": "2024-07-04",
+  "source": "INSIT / HEIG-VD",
+  "createdAt": "2026-10-07T14:08:00Z",
+  "updatedAt": "2026-10-07T18:20:14Z",
+  "entry": "index.html",
+  "preview": "preview.jpg",
+  "custom": true,
+  "crs": "EPSG:32632",
+  "pointclouds": [
+    {
+      "name": "t1z8",
+      "url": "pointclouds/index/metadata.json"
+    }
+  ],
+  "viewer": {},
+  "view": null,
+  "images360": null,
+  "vectors": [],
+  "meshes": [],
+  "notes": "Hand-written page with its own bundled libs/ (older Potree build). Class sub-clouds live in pointclouds/classes/, oriented photos in images/."
+}

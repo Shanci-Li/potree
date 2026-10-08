@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "streetview-ne",
+  "title": "Neuchâtel canton — street view & manhole covers",
+  "description": "Large mobile LiDAR acquisition of the Neuchâtel road network (5.2 billion points) with 10,838 street-level panoramas (8000×4000) and ground-truth 3D manhole covers (NE_GT_3D).",
+  "keywords": [
+    "Mobile LiDAR",
+    "360° panoramas",
+    "Manhole covers"
+  ],
+  "location": "Canton of Neuchâtel",
+  "date": "2020-04",
+  "source": null,
+  "createdAt": "2026-10-07T14:08:00Z",
+  "updatedAt": "2026-10-07T18:20:14Z",
+  "entry": "index.html",
+  "preview": "preview.jpg",
+  "custom": false,
+  "crs": "EPSG:2056",
+  "pointclouds": [
+    {
+      "name": "streetview_ne",
+      "url": "pointcloud/metadata.json",
+      "material": {
+        "activeAttribute": "rgba",
+        "size": 0.7,
+        "pointSizeType": "ADAPTIVE"
+      }
+    }
+  ],
+  "viewer": {
+    "pointBudget": 5000000,
+    "fov": 60,
+    "edl": true,
+    "controls": "earth",
+    "classificationScheme": null,
+    "language": "en",
+    "openMenus": [
+      "tools",
+      "scene",
+      "filters"
+    ],
+    "sidebar": true,
+    "description": ""
+  },
+  "view": null,
+  "images360": {
+    "url": "images360",
+    "coordinatesFile": "coordinates.txt",
+    "crs": null,
+    "labelSets": []
+  },
+  "vectors": [
+    {
+      "name": "Manhole covers (NE_GT_3D)",
+      "url": "vectors/NE_GT_3D.gpkg",
+      "crs": null,
+      "visible": true
+    }
+  ],
+  "meshes": [],
+  "previewView": {
+    "position": [
+      2558339.5,
+      1203077.1,
+      628.8
+    ],
+    "target": [
+      2558339.5,
+      1203317.1,
+      448.8
+    ]
+  }
+}

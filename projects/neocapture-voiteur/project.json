@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "id": "neocapture-voiteur",
+  "title": "Voiteur — NeoCapture mobile mapping",
+  "description": "Trimble MX50 mobile-mapping acquisition (NeoCapture, 10 Dec 2025) at Voiteur in Lambert-93: 835 million points and 3,144 panoramas (8192×4096), with the optimised 3D road signs (circular and rectangular), the 3D road markings and the road-surface mesh.",
+  "keywords": [
+    "Mobile LiDAR",
+    "Trimble MX50",
+    "360° panoramas",
+    "Road markings",
+    "Lambert-93"
+  ],
+  "location": "Voiteur, Jura (FR)",
+  "date": "2025-12-10",
+  "source": "NeoCapture",
+  "createdAt": "2026-10-07T14:08:00Z",
+  "updatedAt": "2026-10-08T09:16:14Z",
+  "entry": "index.html",
+  "preview": "preview.jpg",
+  "custom": false,
+  "crs": "EPSG:2154",
+  "pointclouds": [
+    {
+      "name": "neocapture",
+      "url": "pointcloud/metadata.json",
+      "material": {
+        "activeAttribute": "rgba",
+        "size": 0.7,
+        "pointSizeType": "ADAPTIVE"
+      }
+    }
+  ],
+  "viewer": {
+    "pointBudget": 5000000,
+    "fov": 60,
+    "edl": true,
+    "controls": "earth",
+    "classificationScheme": null,
+    "language": "en",
+    "openMenus": [
+      "tools",
+      "scene",
+      "filters"
+    ],
+    "sidebar": true,
+    "description": ""
+  },
+  "view": null,
+  "images360": {
+    "url": "images360",
+    "coordinatesFile": "coordinates.txt",
+    "crs": null,
+    "labelSets": []
+  },
+  "vectors": [
+    {
+      "name": "Optimised 3D objects",
+      "url": "vectors/optimized_objects_3d.gpkg",
+      "crs": null,
+      "visible": true
+    },
+    {
+      "name": "Road markings 3D",
+      "url": "vectors/road_markings_3d.gpkg",
+      "crs": null,
+      "visible": true
+    }
+  ],
+  "meshes": [
+    {
+      "name": "Road surface",
+      "url": "vectors/road_surface.ply",
+      "format": "ply",
+      "crs": null,
+      "color": "#4488cc",
+      "opacity": 0.7
+    }
+  ],
+  "previewView": {
+    "position": [
+      899381.8,
+      6631353.2,
+      436.4
+    ],
+    "target": [
+      899381.8,
+      6631593.2,
+      256.4
+    ]
+  }
+}

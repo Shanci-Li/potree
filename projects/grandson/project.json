@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "id": "grandson",
+  "title": "Grandson — power line, ground truth & prediction",
+  "description": "Drone LiDAR tile t3z1 of a high-voltage power line near Grandson with two classifications: the ground truth (shown) and the model prediction — tick \"Prediction\" under Point clouds in the scene tree to compare. Vector layers: the manual ground-truth annotation (t3z1_gt, shown), its RANSAC-fitted version and the predicted 3D components (t3z1_pred), both hidden by default. Coordinates are local.",
+  "keywords": [
+    "Drone LiDAR",
+    "GridNet-HD classes",
+    "3D vectors"
+  ],
+  "location": "Grandson, VD",
+  "date": null,
+  "source": null,
+  "createdAt": "2026-10-07T14:08:00Z",
+  "updatedAt": "2026-10-07T19:54:04Z",
+  "entry": "index.html",
+  "preview": "preview.jpg",
+  "custom": false,
+  "crs": "local",
+  "pointclouds": [
+    {
+      "name": "Ground truth",
+      "url": "pointcloud/metadata.json",
+      "material": {
+        "activeAttribute": "classification",
+        "size": 0.7,
+        "pointSizeType": "FIXED"
+      }
+    },
+    {
+      "name": "Prediction",
+      "url": "pointcloud-prediction/metadata.json",
+      "visible": false,
+      "material": {
+        "activeAttribute": "classification",
+        "size": 0.7,
+        "pointSizeType": "FIXED"
+      }
+    }
+  ],
+  "viewer": {
+    "pointBudget": 5000000,
+    "fov": 60,
+    "edl": true,
+    "controls": "earth",
+    "classificationScheme": "AI3D",
+    "language": "en",
+    "openMenus": [
+      "tools",
+      "scene",
+      "filters"
+    ],
+    "sidebar": true,
+    "description": ""
+  },
+  "view": null,
+  "images360": null,
+  "vectors": [
+    {
+      "name": "GT",
+      "url": "vectors/t3z1_gt.gpkg",
+      "crs": null,
+      "visible": true
+    },
+    {
+      "name": "GT RANSAC",
+      "url": "vectors/t3z1_gt_ransac.gpkg",
+      "crs": null,
+      "visible": false
+    },
+    {
+      "name": "Prediction",
+      "url": "vectors/t3z1_pred.gpkg",
+      "crs": null,
+      "visible": false
+    }
+  ],
+  "meshes": []
+}

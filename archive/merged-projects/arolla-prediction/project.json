@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "id": "arolla-prediction",
+  "title": "Arolla — power line, predictions",
+  "description": "The same Arolla tile (t1z4) coloured by the predicted classification, with the predicted 3D power-line components (pylons, pylon top/base, conductors, ground wires, insulators, fixation points). The ground-truth vectors are available as a hidden layer for comparison.",
+  "keywords": [
+    "Power line",
+    "Drone LiDAR",
+    "Prediction",
+    "AI3D classes",
+    "3D vectors"
+  ],
+  "location": "Arolla, VS",
+  "date": null,
+  "source": null,
+  "createdAt": "2026-10-07T14:08:00Z",
+  "updatedAt": "2026-10-07T14:10:41Z",
+  "entry": "index.html",
+  "preview": "preview.jpg",
+  "custom": false,
+  "crs": "local",
+  "pointclouds": [
+    {
+      "name": "Arolla",
+      "url": "pointcloud/metadata.json",
+      "material": {
+        "activeAttribute": "classification",
+        "size": 0.7,
+        "pointSizeType": "FIXED"
+      }
+    }
+  ],
+  "viewer": {
+    "pointBudget": 5000000,
+    "fov": 60,
+    "edl": true,
+    "controls": "earth",
+    "classificationScheme": "AI3D",
+    "language": "en",
+    "openMenus": [
+      "tools",
+      "scene",
+      "filters"
+    ],
+    "sidebar": true,
+    "description": ""
+  },
+  "view": null,
+  "images360": null,
+  "vectors": [
+    {
+      "name": "Predictions (t1z4_predict)",
+      "url": "vectors/t1z4_predict.gpkg",
+      "crs": null,
+      "visible": true
+    },
+    {
+      "name": "Ground truth (t1z4_gt)",
+      "url": "vectors/t1z4_gt.gpkg",
+      "crs": null,
+      "visible": false
+    }
+  ],
+  "meshes": []
+}

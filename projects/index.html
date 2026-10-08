@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="color-scheme" content="light dark">
+	<!-- Base URL of the project service (server/project-server.mjs). Without it the portal is read-only. -->
+	<meta name="potree-api" content="/api">
+	<meta name="description" content="Private point cloud projects: LiDAR surveys, 360° panoramas and vector annotations in the Potree viewer.">
+	<title>Point cloud projects · HEIG-VD / INSIT</title>
+	<link rel="icon" type="image/svg+xml" href="portal/heig-vd-mark.svg">
+	<link rel="stylesheet" href="portal/portal.css">
+	<script type="module" src="portal/portal.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#grid">Skip to projects</a>
+
+<!-- Icon sprite (stroke icons drawn on a 24×24 grid) -->
+<svg class="sprite" aria-hidden="true" focusable="false">
+	<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+	<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+	<symbol id="i-x" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
+	<symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9.5 6 6 6-6 6"/></symbol>
+	<symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9.5 6 6 6-6"/></symbol>
+	<symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M12 19V5.5M6.5 11 12 5.5l5.5 5.5"/></symbol>
+	<symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h13.5M13 6.5l5.5 5.5-5.5 5.5"/></symbol>
+	<symbol id="i-folder" viewBox="0 0 24 24"><path d="M3.5 7.2c0-.9.7-1.7 1.7-1.7h3.9l2 2.2h7.7c.9 0 1.7.8 1.7 1.7v8.4c0 .9-.8 1.7-1.7 1.7H5.2c-1 0-1.7-.8-1.7-1.7z"/></symbol>
+	<symbol id="i-file" viewBox="0 0 24 24"><path d="M13.5 3.5H7.2c-.9 0-1.7.8-1.7 1.7v13.6c0 .9.8 1.7 1.7 1.7h9.6c.9 0 1.7-.8 1.7-1.7V8.5z"/><path d="M13.5 3.5v5h5"/></symbol>
+	<symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4.5h5.5V10M19.5 4.5 11 13"/><path d="M17.5 14v3.8c0 1-.8 1.7-1.7 1.7H6.2c-1 0-1.7-.8-1.7-1.7V8.2c0-1 .8-1.7 1.7-1.7H10"/></symbol>
+	<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.2M12 7.8v.1"/></symbol>
+	<symbol id="i-check" viewBox="0 0 24 24"><path d="m5.5 12.5 4.2 4.2L18.5 7.8"/></symbol>
+	<symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.4 4.6 3 17.6c-.7 1.2.2 2.6 1.6 2.6h14.8c1.4 0 2.3-1.4 1.6-2.6L13.6 4.6c-.7-1.2-2.5-1.2-3.2 0z"/><path d="M12 9.5v4.2M12 16.8v.1"/></symbol>
+	<symbol id="i-alert-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.8V13M12 16.2v.1"/></symbol>
+	<symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 20.5s-6.3-5.4-6.3-10.6a6.3 6.3 0 0 1 12.6 0c0 5.2-6.3 10.6-6.3 10.6z"/><circle cx="12" cy="9.9" r="2.2"/></symbol>
+	<symbol id="i-calendar" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></symbol>
+	<symbol id="i-points" viewBox="0 0 24 24"><g fill="currentColor" stroke="none"><circle cx="5" cy="17" r="1.5"/><circle cx="9.5" cy="13" r="1.5"/><circle cx="13" cy="16.5" r="1.5"/><circle cx="17.5" cy="11" r="1.5"/><circle cx="19.5" cy="17" r="1.5"/><circle cx="11" cy="7.5" r="1.5"/><circle cx="6" cy="9" r="1.2"/><circle cx="16" cy="5.5" r="1.2"/></g></symbol>
+	<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.6 5.2 3.6 8.5s-1.2 6.1-3.6 8.5c-2.4-2.4-3.6-5.2-3.6-8.5S9.6 5.9 12 3.5z"/></symbol>
+	<symbol id="i-pano" viewBox="0 0 24 24"><path d="M3.5 7.2c5.6-1.6 11.4-1.6 17 0v9.6c-5.6-1.6-11.4-1.6-17 0z"/><path d="m7.5 14.2 3-3 2.4 2.4 1.6-1.6 2.5 2.5"/></symbol>
+	<symbol id="i-labels" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.6"/><rect x="13" y="4" width="7" height="7" rx="1.6"/><rect x="4" y="13" width="7" height="7" rx="1.6"/><rect x="13" y="13" width="7" height="7" rx="1.6"/></symbol>
+	<symbol id="i-vector" viewBox="0 0 24 24"><path d="m5 17.5 4.5-9 5.5 6 4-8.5"/><g fill="currentColor" stroke="none"><circle cx="5" cy="17.5" r="1.8"/><circle cx="9.5" cy="8.5" r="1.8"/><circle cx="15" cy="14.5" r="1.8"/><circle cx="19" cy="6" r="1.8"/></g></symbol>
+	<symbol id="i-mesh" viewBox="0 0 24 24"><path d="M12 3.5 19.5 7.8v8.4L12 20.5l-7.5-4.3V7.8z"/><path d="M4.5 7.8 12 12l7.5-4.2M12 12v8.5"/></symbol>
+	<symbol id="i-edit" viewBox="0 0 24 24"><path d="M4.5 19.5h3.8L18.7 9.1a2.7 2.7 0 0 0-3.8-3.8L4.5 15.7z"/><path d="m13.6 6.6 3.8 3.8"/></symbol>
+	<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4.5v4.8h-4.8"/></symbol>
+	<symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.7"/><path d="m20.5 15.5-4.8-4.8-8.6 8.3"/></symbol>
+	<symbol id="i-code" viewBox="0 0 24 24"><path d="M8.5 7.5 4 12l4.5 4.5M15.5 7.5 20 12l-4.5 4.5"/></symbol>
+	<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+	<symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15M10 11v6M14 11v6M6.5 7l.9 11.4c.1 1 .9 1.6 1.8 1.6h5.6c.9 0 1.7-.7 1.8-1.6L17.5 7M9.5 7V4.5h5V7"/></symbol>
+	<symbol id="i-drive" viewBox="0 0 24 24"><rect x="3.5" y="12.5" width="17" height="7" rx="1.8"/><path d="M5 12.5 7.3 5.6c.2-.7.9-1.1 1.6-1.1h6.2c.7 0 1.4.4 1.6 1.1l2.3 6.9M7.5 16h.1"/></symbol>
+	<symbol id="i-book" viewBox="0 0 24 24"><path d="M3.5 5.6c2.9-1.4 5.7-1.4 8.5.6 2.8-2 5.6-2 8.5-.6v13c-2.9-1.4-5.7-1.4-8.5.6-2.8-2-5.6-2-8.5-.6z"/><path d="M12 6.2v13"/></symbol>
+	<symbol id="i-sort" viewBox="0 0 24 24"><path d="M7.5 4.5v15M4 8l3.5-3.5L11 8M16.5 19.5v-15M13 16l3.5 3.5L20 16"/></symbol>
+	<symbol id="i-jobs" viewBox="0 0 24 24"><path d="M9.5 6.5h10M9.5 12h10M9.5 17.5h10"/><path d="m4 6.5 1.2 1.2L7 5.5M4 12l1.2 1.2L7 11"/><circle cx="5.5" cy="17.5" r="1.3"/></symbol>
+	<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6.2c0-.9-.8-1.7-1.7-1.7H6.2c-.9 0-1.7.8-1.7 1.7v7.6c0 .9.8 1.7 1.7 1.7h2.3"/></symbol>
+	<symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 4 3.5 8.5 12 13l8.5-4.5z"/><path d="m3.5 12.5 8.5 4.5 8.5-4.5M3.5 16.5 12 21l8.5-4.5"/></symbol>
+	<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4.5 7h9M17.5 7h2M4.5 17h3M11.5 17h8"/><circle cx="15.5" cy="7" r="2"/><circle cx="9.5" cy="17" r="2"/></symbol>
+	<symbol id="i-import" viewBox="0 0 24 24"><path d="M12 4v10.5M7.5 10 12 14.5l4.5-4.5"/><path d="M4.5 15.5v2.8c0 .9.8 1.7 1.7 1.7h11.6c.9 0 1.7-.8 1.7-1.7v-2.8"/></symbol>
+	<symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15.5" r="4"/><path d="m10.9 12.6 8.6-8.6M16.2 7.3l2.6 2.6M18.4 5.1l2.1 2.1"/></symbol>
+	<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></symbol>
+	<symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10 5.7a9.4 9.4 0 0 1 2-.2c6 0 9.5 6.5 9.5 6.5a16.5 16.5 0 0 1-2.6 3.4M6.6 6.9C4 8.6 2.5 12 2.5 12s3.5 6.5 9.5 6.5c1.8 0 3.4-.6 4.8-1.4"/><path d="M10 10a2.8 2.8 0 0 0 4 4M4 4l16 16"/></symbol>
+	<symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5v-3a3.5 3.5 0 0 1 7 0v3"/></symbol>
+	<symbol id="i-logout" viewBox="0 0 24 24"><path d="M9.5 4.5H6.2c-.9 0-1.7.8-1.7 1.7v11.6c0 .9.8 1.7 1.7 1.7h3.3"/><path d="m15 8 4 4-4 4M19 12H9.5"/></symbol>
+</svg>
+
+<header class="appbar">
+	<div class="container appbar-inner">
+		<a class="brand" href="./">
+			<img class="brand-mark" src="portal/heig-vd-mark.svg" alt="" width="30" height="30">
+			<span class="brand-text"><span class="brand-name">HEIG-VD</span><span class="brand-sep" aria-hidden="true">/</span><span class="brand-sub">INSIT</span></span>
+		</a>
+		<div class="appbar-actions">
+			<span class="service" id="service-status" data-state="checking" role="status">
+				<span class="service-dot" aria-hidden="true"></span><span class="service-label">Checking service…</span>
+			</span>
+			<div class="jobs" id="jobs" hidden>
+				<button type="button" class="btn ghost jobs-btn" id="jobs-btn" aria-expanded="false" aria-controls="jobs-menu" aria-haspopup="true">
+					<span class="jobs-indicator" aria-hidden="true"></span><span class="btn-label" id="jobs-label">Jobs</span>
+				</button>
+				<div class="jobs-menu" id="jobs-menu" hidden>
+					<div class="jobs-menu-head"><span>Jobs</span><button type="button" class="link-btn" id="jobs-clear">Clear finished</button></div>
+					<ul id="jobs-list" class="jobs-list"></ul>
+				</div>
+			</div>
+			<div class="access" id="access" hidden>
+				<button type="button" class="btn ghost access-btn" id="access-btn">
+					<svg class="icon"><use href="#i-key"/></svg><span class="btn-label" id="access-label">Sign in</span>
+				</button>
+				<div class="popover access-menu" id="access-menu" hidden>
+					<p class="popover-text"><strong>Editing is unlocked.</strong> <span id="access-where"></span></p>
+					<button type="button" class="menu-item" id="access-forget"><svg class="icon"><use href="#i-logout"/></svg>Forget token</button>
+				</div>
+			</div>
+			<a class="btn ghost hide-sm" href="../examples/page.html">
+				<svg class="icon"><use href="#i-book"/></svg><span>Potree examples</span>
+			</a>
+			<button type="button" class="btn primary" id="new-project">
+				<svg class="icon"><use href="#i-plus"/></svg><span class="btn-label">New project</span>
+			</button>
+		</div>
+	</div>
+</header>
+
+<main class="container" id="main">
+	<section class="intro" aria-labelledby="page-title">
+		<div class="intro-text">
+			<h1 id="page-title">Point cloud projects</h1>
+			<p class="lede">LiDAR surveys, 360° panoramas and vector annotations, ready to explore in the browser.</p>
+		</div>
+		<dl class="totals" aria-label="Totals">
+			<div><dt>Projects</dt><dd id="total-projects">–</dd></div>
+			<div><dt>Points</dt><dd id="total-points">–</dd></div>
+			<div><dt>Panoramas</dt><dd id="total-panos">–</dd></div>
+		</dl>
+	</section>
+
+	<!-- Shown when projects cannot be created or edited (content set by portal.js). -->
+	<div class="notice" id="readonly-notice" hidden>
+		<svg class="icon" id="notice-icon"><use href="#i-info"/></svg>
+		<p id="notice-text"></p>
+		<button type="button" class="link-btn" id="retry-service">Check again</button>
+	</div>
+
+	<section class="toolbar" aria-label="Search and filter projects">
+		<div class="toolbar-row">
+			<div class="search">
+				<svg class="icon"><use href="#i-search"/></svg>
+				<input type="search" id="search" placeholder="Search title, description, keywords, location" aria-label="Search projects" autocomplete="off" spellcheck="false">
+				<kbd class="search-kbd" aria-hidden="true">/</kbd>
+			</div>
+			<label class="sort">
+				<svg class="icon"><use href="#i-sort"/></svg>
+				<span class="visually-hidden">Sort by</span>
+				<select id="sort">
+					<option value="updated" selected>Recently updated</option>
+					<option value="title">Title A–Z</option>
+					<option value="points">Most points</option>
+				</select>
+			</label>
+		</div>
+		<div class="chips-row" id="keyword-chips" role="group" aria-label="Filter by keyword"></div>
+	</section>
+
+	<p class="result-line" id="result-line" aria-live="polite"></p>
+	<ul class="grid" id="grid" aria-label="Projects" tabindex="-1"></ul>
+	<div class="empty" id="empty" hidden></div>
+</main>
+
+<footer class="site-footer">
+	<div class="container footer-inner">
+		<p class="footer-cite">Point clouds are rendered with <a href="https://potree.org/">Potree</a> (BSD 2-Clause).</p>
+	</div>
+</footer>
+
+<!-- Project details drawer (content rendered by details.js) -->
+<dialog class="drawer" id="details" aria-labelledby="details-title">
+	<div class="drawer-frame" id="details-frame"></div>
+</dialog>
+
+<!-- New project wizard -->
+<dialog class="modal modal-xl wizard" id="wizard" aria-labelledby="wizard-title">
+	<form class="modal-frame" id="wizard-form" novalidate autocomplete="off">
+		<header class="modal-head">
+			<div>
+				<h2 id="wizard-title">New project</h2>
+				<p class="modal-sub">Convert a point cloud with PotreeConverter and publish it as a project page.</p>
+			</div>
+			<button type="button" class="icon-btn" data-close aria-label="Close">
+				<svg class="icon"><use href="#i-x"/></svg>
+			</button>
+		</header>
+		<div class="wizard-body">
+			<nav class="wizard-nav" aria-label="Form sections">
+				<ol>
+					<li><a href="#wz-basics" data-section="wz-basics"><span class="nav-num">1</span>Basics</a></li>
+					<li><a href="#wz-pointcloud" data-section="wz-pointcloud"><span class="nav-num">2</span>Point cloud</a></li>
+					<li><a href="#wz-images" data-section="wz-images"><span class="nav-num">3</span>360° images</a></li>
+					<li><a href="#wz-vectors" data-section="wz-vectors"><span class="nav-num">4</span>Vector data</a></li>
+					<li><a href="#wz-import" data-section="wz-import"><span class="nav-num">5</span>Import</a></li>
+					<li><a href="#wz-viewer" data-section="wz-viewer"><span class="nav-num">6</span>Viewer defaults</a></li>
+				</ol>
+				<div class="wizard-nav-note" id="wizard-service-note"></div>
+			</nav>
+			<div class="wizard-scroll" id="wizard-scroll">
+				<div class="form-alert danger" id="wizard-alert" role="alert" hidden></div>
+
+				<section class="form-section" id="wz-basics" aria-labelledby="wz-basics-h">
+					<header class="section-head">
+						<span class="section-num" aria-hidden="true">1</span>
+						<div><h3 id="wz-basics-h">Basics</h3><p>How the project is listed in this portal.</p></div>
+					</header>
+					<div class="field-grid">
+						<div class="field span-2">
+							<label for="f-title">Title <span class="req" aria-hidden="true">*</span></label>
+							<input id="f-title" name="title" type="text" required maxlength="160" placeholder="e.g. Lausanne — mobile LiDAR 2026" aria-describedby="f-title-err">
+							<p class="field-error" id="f-title-err" hidden></p>
+						</div>
+						<div class="field span-2">
+							<label for="f-id">Project id <span class="req" aria-hidden="true">*</span></label>
+							<div class="input-group">
+								<span class="input-addon mono" aria-hidden="true">/projects/</span>
+								<input id="f-id" name="id" type="text" class="mono" required maxlength="63" spellcheck="false" autocapitalize="off" placeholder="lausanne-mobile-lidar" aria-describedby="f-id-hint f-id-err">
+							</div>
+							<p class="field-hint" id="f-id-hint">Generated from the title. Lowercase letters, digits and dashes; it becomes the folder and URL.</p>
+							<p class="field-error" id="f-id-err" hidden></p>
+						</div>
+						<div class="field">
+							<label for="f-location">Location</label>
+							<input id="f-location" name="location" type="text" maxlength="120" placeholder="e.g. Lausanne, VD">
+						</div>
+						<div class="field">
+							<label for="f-date">Acquisition date</label>
+							<input id="f-date" name="date" type="text" maxlength="40" placeholder="YYYY-MM-DD" aria-describedby="f-date-hint">
+							<p class="field-hint" id="f-date-hint">Free text is fine, e.g. “2025-04” or “spring 2025”.</p>
+						</div>
+						<div class="field span-2">
+							<label for="f-source">Source / credit</label>
+							<input id="f-source" name="source" type="text" maxlength="120" placeholder="Data provider, e.g. ORBIS360 SA">
+						</div>
+						<div class="field span-2">
+							<label for="f-description">Description</label>
+							<textarea id="f-description" name="description" rows="3" maxlength="4000" placeholder="What is in this dataset and what is it for?"></textarea>
+						</div>
+						<div class="field span-2">
+							<label for="f-keywords">Keywords</label>
+							<div class="chip-input" id="f-keywords-box"></div>
+							<p class="field-hint" id="f-keywords-hint">Press Enter or comma to add. Shown as tags on the project card.</p>
+						</div>
+					</div>
+				</section>
+
+				<section class="form-section" id="wz-pointcloud" aria-labelledby="wz-pointcloud-h">
+					<header class="section-head">
+						<span class="section-num" aria-hidden="true">2</span>
+						<div><h3 id="wz-pointcloud-h">Point cloud</h3><p>LAS/LAZ input on the server, converted with PotreeConverter.</p></div>
+					</header>
+					<div class="field-grid">
+						<div class="field span-2">
+							<label for="f-pc-path">Server path <span class="req" aria-hidden="true">*</span></label>
+							<div class="path-field">
+								<input id="f-pc-path" name="pcPath" type="text" class="mono" required spellcheck="false" autocapitalize="off" placeholder="/mnt/Data2/…/survey.laz or a folder of LAS/LAZ files" aria-describedby="f-pc-path-err f-pc-inspect">
+								<button type="button" class="btn" id="f-pc-browse"><svg class="icon"><use href="#i-folder"/></svg>Browse…</button>
+							</div>
+							<p class="field-error" id="f-pc-path-err" hidden></p>
+							<div class="inspect" id="f-pc-inspect" aria-live="polite" hidden></div>
+						</div>
+						<div class="field span-2">
+							<label for="f-crs">Coordinate reference system <span class="req" aria-hidden="true">*</span></label>
+							<select id="f-crs" name="crs" aria-describedby="f-crs-err"></select>
+							<p class="field-error" id="f-crs-err" hidden></p>
+						</div>
+						<div class="field-group span-2" id="f-crs-custom" hidden>
+							<div class="field">
+								<label for="f-crs-name">CRS name</label>
+								<input id="f-crs-name" type="text" class="mono" placeholder="EPSG:31467" spellcheck="false" aria-describedby="f-crs-name-err">
+								<p class="field-error" id="f-crs-name-err" hidden></p>
+							</div>
+							<div class="field span-2">
+								<label for="f-crs-proj4">proj4 definition</label>
+								<textarea id="f-crs-proj4" rows="2" class="mono" spellcheck="false" placeholder="+proj=tmerc +lat_0=0 +lon_0=9 +k=1 +x_0=3500000 +y_0=0 +ellps=bessel +units=m +no_defs" aria-describedby="f-crs-proj4-err"></textarea>
+								<p class="field-error" id="f-crs-proj4-err" hidden></p>
+							</div>
+						</div>
+						<fieldset class="field span-2">
+							<legend>Encoding</legend>
+							<div class="segmented" role="radiogroup">
+								<label><input type="radio" name="encoding" value="DEFAULT" checked><span>Default</span></label>
+								<label><input type="radio" name="encoding" value="BROTLI"><span>Brotli</span></label>
+							</div>
+							<p class="field-hint" data-hint-for="encoding"></p>
+						</fieldset>
+						<fieldset class="field span-2">
+							<legend>Sampling method</legend>
+							<div class="radio-cards cols-3">
+								<label class="radio-card"><input type="radio" name="method" value="poisson" checked><span class="rc-title">Poisson</span><span class="rc-text">Even spacing, best visual quality. Recommended.</span></label>
+								<label class="radio-card"><input type="radio" name="method" value="poisson_average"><span class="rc-title">Poisson average</span><span class="rc-text">Like Poisson, colours averaged across levels. Slower.</span></label>
+								<label class="radio-card"><input type="radio" name="method" value="random"><span class="rc-title">Random</span><span class="rc-text">Fastest conversion, slightly noisier overview levels.</span></label>
+							</div>
+						</fieldset>
+					</div>
+				</section>
+
+				<section class="form-section" id="wz-images" aria-labelledby="wz-images-h">
+					<header class="section-head">
+						<span class="section-num" aria-hidden="true">3</span>
+						<div><h3 id="wz-images-h">360° images</h3><p>Optional panoramas with a coordinates file, plus semantic label sets.</p></div>
+						<label class="switch section-switch">
+							<input type="checkbox" role="switch" id="f-pano-enabled" aria-label="Include 360° images">
+							<span class="switch-track" aria-hidden="true"></span><span class="switch-label">Include</span>
+						</label>
+					</header>
+					<div class="section-body" id="f-pano-body" hidden>
+						<div class="field-grid">
+							<div class="field span-2">
+								<label for="f-pano-path">Panorama folder <span class="req" aria-hidden="true">*</span></label>
+								<div class="path-field">
+									<input id="f-pano-path" type="text" class="mono" spellcheck="false" autocapitalize="off" placeholder="/mnt/Data2/…/pano" aria-describedby="f-pano-path-err f-pano-inspect">
+									<button type="button" class="btn" id="f-pano-browse"><svg class="icon"><use href="#i-folder"/></svg>Browse…</button>
+								</div>
+								<p class="field-error" id="f-pano-path-err" hidden></p>
+								<div class="inspect" id="f-pano-inspect" aria-live="polite" hidden></div>
+							</div>
+							<div class="field">
+								<label for="f-pano-coords">Coordinates file</label>
+								<input id="f-pano-coords" type="text" class="mono" value="coordinates.txt" spellcheck="false" aria-describedby="f-pano-coords-hint f-pano-coords-err">
+								<p class="field-hint" id="f-pano-coords-hint">Inside the folder; columns File, Time, x, y, z, course, pitch, roll.</p>
+								<p class="field-error" id="f-pano-coords-err" hidden></p>
+							</div>
+							<div class="field">
+								<label for="f-pano-crs">Coordinates CRS</label>
+								<select id="f-pano-crs"></select>
+							</div>
+						</div>
+						<div class="subsection">
+							<div class="subsection-head">
+								<h4>Label sets</h4>
+								<p>Folders of label images with the same file names as the panoramas (e.g. Cityscapes, SAM).</p>
+							</div>
+							<ul class="rows" id="f-label-rows"></ul>
+							<button type="button" class="btn ghost add-row" id="f-label-add"><svg class="icon"><use href="#i-plus"/></svg>Add label set</button>
+						</div>
+					</div>
+				</section>
+
+				<section class="form-section" id="wz-vectors" aria-labelledby="wz-vectors-h">
+					<header class="section-head">
+						<span class="section-num" aria-hidden="true">4</span>
+						<div><h3 id="wz-vectors-h">Vector data</h3><p>Optional GeoPackage layers drawn over the point cloud.</p></div>
+					</header>
+					<ul class="rows" id="f-vector-rows"></ul>
+					<button type="button" class="btn ghost add-row" id="f-vector-add"><svg class="icon"><use href="#i-plus"/></svg>Add GeoPackage</button>
+				</section>
+
+				<section class="form-section" id="wz-import" aria-labelledby="wz-import-h">
+					<header class="section-head">
+						<span class="section-num" aria-hidden="true">5</span>
+						<div><h3 id="wz-import-h">Import mode</h3><p>How panoramas, labels and vector files get into the project folder.</p></div>
+					</header>
+					<fieldset class="field">
+						<legend class="visually-hidden">Import mode</legend>
+						<div class="radio-cards cols-3">
+							<label class="radio-card"><input type="radio" name="importMode" value="copy" checked><span class="rc-title">Copy</span><span class="rc-text">Safest. Sources stay untouched; needs the disk space twice.</span></label>
+							<label class="radio-card"><input type="radio" name="importMode" value="symlink"><span class="rc-title">Symlink</span><span class="rc-text">No duplication. The project breaks if the sources move.</span></label>
+							<label class="radio-card"><input type="radio" name="importMode" value="move"><span class="rc-title">Move</span><span class="rc-text">Renames the sources into the project. They leave their old place.</span></label>
+						</div>
+					</fieldset>
+				</section>
+
+				<section class="form-section" id="wz-viewer" aria-labelledby="wz-viewer-h">
+					<details class="advanced" id="f-advanced">
+						<summary>
+							<span class="section-num" aria-hidden="true">6</span>
+							<span class="advanced-title"><span class="h3" id="wz-viewer-h">Viewer defaults</span><span class="advanced-sub">Advanced — colour, point budget, controls, preview.</span></span>
+							<svg class="icon chevron"><use href="#i-chevron-down"/></svg>
+						</summary>
+						<div class="field-grid">
+							<div class="field">
+								<label for="f-attr">Colour by</label>
+								<select id="f-attr">
+									<option value="rgba">RGB colour</option>
+									<option value="classification">Classification</option>
+									<option value="intensity">Intensity</option>
+									<option value="elevation">Elevation</option>
+									<option value="return number">Return number</option>
+									<option value="gps-time">GPS time</option>
+									<option value="__custom">Other attribute…</option>
+								</select>
+							</div>
+							<div class="field" id="f-attr-custom-field" hidden>
+								<label for="f-attr-custom">Attribute name</label>
+								<input id="f-attr-custom" type="text" class="mono" placeholder="img_label" spellcheck="false" aria-describedby="f-attr-custom-err">
+								<p class="field-error" id="f-attr-custom-err" hidden></p>
+							</div>
+							<div class="field">
+								<label for="f-scheme">Classification scheme</label>
+								<select id="f-scheme">
+									<option value="">None (Potree default)</option>
+									<option value="MAGIC3D">MAGIC3D</option>
+									<option value="AI3D">GridNet-HD (AI3D)</option>
+								</select>
+							</div>
+							<div class="field">
+								<label for="f-budget">Point budget</label>
+								<input id="f-budget" type="number" inputmode="numeric" min="100000" max="20000000" step="100000" value="2000000" aria-describedby="f-budget-hint f-budget-err">
+								<p class="field-hint" id="f-budget-hint">Points drawn per frame. 2–5 million suits most GPUs.</p>
+								<p class="field-error" id="f-budget-err" hidden></p>
+							</div>
+							<div class="field">
+								<label for="f-size">Point size</label>
+								<input id="f-size" type="number" inputmode="decimal" min="0.1" max="10" step="0.1" value="0.7" aria-describedby="f-size-err">
+								<p class="field-error" id="f-size-err" hidden></p>
+							</div>
+							<div class="field">
+								<label for="f-sizetype">Size type</label>
+								<select id="f-sizetype">
+									<option value="ADAPTIVE">Adaptive</option>
+									<option value="FIXED">Fixed</option>
+									<option value="ATTENUATED">Attenuated</option>
+								</select>
+							</div>
+							<div class="field">
+								<label for="f-controls">Navigation</label>
+								<select id="f-controls">
+									<option value="earth">Earth (pan and orbit around the cursor)</option>
+									<option value="orbit">Orbit</option>
+									<option value="fly">Fly</option>
+								</select>
+							</div>
+							<div class="field span-2 toggles">
+								<label class="switch">
+									<input type="checkbox" role="switch" id="f-edl" checked>
+									<span class="switch-track" aria-hidden="true"></span><span class="switch-label">Eye-dome lighting <span class="muted">— shading that makes depth readable</span></span>
+								</label>
+								<label class="switch">
+									<input type="checkbox" role="switch" id="f-preview" checked>
+									<span class="switch-track" aria-hidden="true"></span><span class="switch-label">Render a preview image <span class="muted" id="f-preview-note">— shown on the project card</span></span>
+								</label>
+							</div>
+						</div>
+					</details>
+				</section>
+			</div>
+		</div>
+		<footer class="modal-foot">
+			<p class="foot-status" id="wizard-status" aria-live="polite"></p>
+			<button type="button" class="btn ghost" id="wizard-reset">Clear form</button>
+			<button type="button" class="btn" data-close>Cancel</button>
+			<button type="submit" class="btn primary" id="wizard-submit"><svg class="icon"><use href="#i-check"/></svg>Create project</button>
+		</footer>
+	</form>
+</dialog>
+
+<!-- Server path picker -->
+<dialog class="modal modal-md picker" id="picker" aria-labelledby="picker-title">
+	<div class="modal-frame">
+		<header class="modal-head">
+			<div>
+				<h2 id="picker-title">Choose a path</h2>
+				<p class="modal-sub" id="picker-sub"></p>
+			</div>
+			<button type="button" class="icon-btn" data-close aria-label="Close">
+				<svg class="icon"><use href="#i-x"/></svg>
+			</button>
+		</header>
+		<div class="picker-bar">
+			<button type="button" class="icon-btn" id="picker-up" aria-label="Parent folder" title="Parent folder (Backspace)">
+				<svg class="icon"><use href="#i-arrow-up"/></svg>
+			</button>
+			<nav class="crumbs" id="picker-crumbs" aria-label="Current folder"></nav>
+		</div>
+		<div class="picker-tools">
+			<label class="picker-root" id="picker-root-wrap" hidden>
+				<span class="visually-hidden">Location</span>
+				<select id="picker-root"></select>
+			</label>
+			<label class="picker-input">
+				<span class="visually-hidden">Go to path</span>
+				<input type="text" id="picker-path" class="mono" spellcheck="false" autocapitalize="off" placeholder="Type a path and press Enter">
+			</label>
+			<label class="picker-input picker-filter">
+				<svg class="icon"><use href="#i-search"/></svg>
+				<span class="visually-hidden">Filter entries</span>
+				<input type="search" id="picker-filter" placeholder="Filter" spellcheck="false">
+			</label>
+		</div>
+		<div class="picker-note" id="picker-note" hidden></div>
+		<div class="picker-list-wrap">
+			<ul class="picker-list" id="picker-list" role="listbox" tabindex="0" aria-label="Folder contents"></ul>
+			<div class="picker-state" id="picker-state" hidden></div>
+		</div>
+		<footer class="modal-foot picker-foot">
+			<p class="foot-status picker-selection" id="picker-selection"></p>
+			<button type="button" class="btn" data-close>Cancel</button>
+			<button type="button" class="btn primary" id="picker-choose" disabled>Select</button>
+		</footer>
+	</div>
+</dialog>
+
+<!-- Job progress -->
+<dialog class="modal modal-md job" id="job-dialog" aria-labelledby="job-title">
+	<div class="modal-frame">
+		<header class="modal-head">
+			<div>
+				<p class="eyebrow" id="job-kind">Job</p>
+				<h2 id="job-title">…</h2>
+			</div>
+			<button type="button" class="icon-btn" data-close aria-label="Close">
+				<svg class="icon"><use href="#i-x"/></svg>
+			</button>
+		</header>
+		<div class="modal-body job-body">
+			<div class="job-summary">
+				<span class="status-pill" id="job-status" data-status="queued">Queued</span>
+				<span class="job-meta" id="job-meta"></span>
+				<span class="job-percent" id="job-percent"></span>
+			</div>
+			<div class="progress" id="job-progress" role="progressbar" aria-label="Job progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="progress-bar"></span></div>
+			<div class="form-alert danger" id="job-error" role="alert" hidden></div>
+			<div class="form-alert warn" id="job-warnings" hidden></div>
+			<ol class="steps" id="job-steps"></ol>
+			<div class="log-wrap">
+				<div class="log-head"><span>Log</span><span class="log-count" id="job-log-count"></span></div>
+				<pre class="log" id="job-log" tabindex="0" aria-label="Job log"></pre>
+			</div>
+		</div>
+		<footer class="modal-foot">
+			<p class="foot-status" id="job-foot-note">Closing this window does not stop the job.</p>
+			<button type="button" class="btn" id="job-retry" hidden><svg class="icon"><use href="#i-edit"/></svg>Edit &amp; retry</button>
+			<button type="button" class="btn" data-close>Close</button>
+			<a class="btn primary" id="job-open" hidden><svg class="icon"><use href="#i-arrow-right"/></svg>Open project</a>
+		</footer>
+	</div>
+</dialog>
+
+<!-- Access token for the project service (auth.js) -->
+<dialog class="modal modal-sm token-dialog" id="token-dialog" aria-labelledby="token-title" aria-describedby="token-desc">
+	<form class="modal-frame" id="token-form" novalidate autocomplete="off">
+		<header class="modal-head">
+			<div class="token-head">
+				<span class="token-badge" aria-hidden="true"><svg class="icon"><use href="#i-key"/></svg></span>
+				<div>
+					<h2 id="token-title">Access token</h2>
+					<p class="modal-sub" id="token-desc">Creating and editing projects needs the access token of the project service.</p>
+				</div>
+			</div>
+			<button type="button" class="icon-btn" data-close aria-label="Close">
+				<svg class="icon"><use href="#i-x"/></svg>
+			</button>
+		</header>
+		<div class="modal-body token-body">
+			<div class="form-alert danger" id="token-alert" role="alert" hidden></div>
+			<div class="field">
+				<label for="token-input">Token</label>
+				<div class="secret-field">
+					<input id="token-input" type="password" class="mono" spellcheck="false" autocapitalize="off" autocomplete="off" required aria-describedby="token-err token-hint">
+					<button type="button" class="icon-btn sm" id="token-reveal" aria-label="Show token" aria-pressed="false" title="Show token"><svg class="icon"><use href="#i-eye"/></svg></button>
+				</div>
+				<p class="field-error" id="token-err" role="alert" hidden></p>
+				<p class="field-hint" id="token-hint">The <code>API_TOKEN</code> of the service (see <code>deploy/README.md</code>). Ask whoever runs it.</p>
+			</div>
+			<label class="check">
+				<input type="checkbox" id="token-remember" checked>
+				<span><span class="check-label">Remember on this device</span><span class="field-hint">Otherwise it is forgotten when this tab closes. “Forget token” in the menu removes it.</span></span>
+			</label>
+		</div>
+		<footer class="modal-foot">
+			<button type="button" class="btn" data-close>Cancel</button>
+			<button type="submit" class="btn primary" id="token-submit"><svg class="icon"><use href="#i-check"/></svg>Continue</button>
+		</footer>
+	</form>
+</dialog>
+
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="description" content="Drone LiDAR tile t1z4 of a high-voltage power line near Arolla with two classifications of the same points: the ground truth (shown) and the model prediction — tick &quot;Prediction&quot; under Point clouds in the scene tree to compare. The ground-truth 3D annotations (t1z4_gt) are shown; the predicted 3D power-line components (pylons, pylon top/base, conductors, ground wires, insulators, fixation points) are listed as a hidden vector layer. Coordinates are local (centred on the tile).">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+	<title>Arolla — power line, ground truth &amp; prediction · Potree</title>
+
+	<link rel="stylesheet" type="text/css" href="../../build/potree/potree.css">
+	<link rel="stylesheet" type="text/css" href="../../libs/jquery-ui/jquery-ui.min.css">
+	<link rel="stylesheet" type="text/css" href="../../libs/openlayers3/ol.css">
+	<link rel="stylesheet" type="text/css" href="../../libs/spectrum/spectrum.css">
+	<link rel="stylesheet" type="text/css" href="../../libs/jstree/themes/mixed/style.css">
+
+	<style>
+		/* Way back to the project portal: top-right, clear of Potree's quick
+		   buttons (menu/map, top-left of the 3D view) and of the 360° control bar
+		   (bottom-right). On a narrow screen with the sidebar open the 3D view is
+		   too narrow for both; ../shared/project-viewer.js then hides the link
+		   so it never covers the menu button. */
+		.project-backlink{
+			position: absolute; top: 10px; right: 10px; z-index: 10001;
+			padding: 5px 11px; border-radius: 14px;
+			background: rgba(20, 24, 30, 0.72); color: #eef2f7;
+			border: 1px solid rgba(255, 255, 255, 0.18);
+			font: 13px/1.2 system-ui, -apple-system, "Segoe UI", sans-serif;
+			text-decoration: none; white-space: nowrap;
+		}
+		.project-backlink:hover, .project-backlink:focus-visible{
+			background: rgba(20, 24, 30, 0.88); color: #fff;
+		}
+		html.project-preview .project-backlink{ display: none; }
+	</style>
+</head>
+
+<body data-project-id="arolla">
+	<script src="../../libs/jquery/jquery-3.1.1.min.js"></script>
+	<script src="../../libs/spectrum/spectrum.js"></script>
+	<script src="../../libs/jquery-ui/jquery-ui.min.js"></script>
+	<script src="../../libs/other/BinaryHeap.js"></script>
+	<script src="../../libs/tween/tween.min.js"></script>
+	<script src="../../libs/d3/d3.js"></script>
+	<script src="../../libs/proj4/proj4.js"></script>
+	<script src="../../libs/openlayers3/ol.js"></script>
+	<script src="../../libs/i18next/i18next.js"></script>
+	<script src="../../libs/jstree/jstree.js"></script>
+	<script src="../../build/potree/potree.js"></script>
+	<script src="../../libs/plasio/js/laslaz.js"></script>
+
+	<div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0px; top: 0px; ">
+		<div id="potree_render_area" style="background-image: url('../../build/potree/resources/images/background.jpg');"></div>
+		<div id="potree_sidebar_container"> </div>
+		<a class="project-backlink" href="../" title="Back to the project list">← Projects</a>
+	</div>
+
+	<script type="module">
+		import {loadProject} from "../shared/project-viewer.js";
+
+		window.viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
+
+		// Everything (settings, point clouds, vectors, meshes, 360° images) comes
+		// from project.json; see ../README.md for the schema.
+		await loadProject(window.viewer, "./project.json", {
+			onLoaded(ctx){
+				/* project-specific code can go here */
+			},
+		});
+	</script>
+</body>
+</html>

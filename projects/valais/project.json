@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "valais",
+  "title": "Valais — power line demo",
+  "description": "Drone LiDAR tile of a power line in Valais (71 million points, UTM 32N) in true colour, with demo 3D vector annotations of pylons, conductors, ground wires and insulators.",
+  "keywords": [
+    "Drone LiDAR",
+    "3D vectors",
+    "UTM 32N"
+  ],
+  "location": "Valais",
+  "date": null,
+  "source": null,
+  "createdAt": "2026-10-07T14:08:00Z",
+  "updatedAt": "2026-10-07T18:20:14Z",
+  "entry": "index.html",
+  "preview": "preview.jpg",
+  "custom": false,
+  "crs": "EPSG:32632",
+  "pointclouds": [
+    {
+      "name": "valais",
+      "url": "pointcloud/metadata.json",
+      "material": {
+        "activeAttribute": "rgba",
+        "size": 0.7,
+        "pointSizeType": "ADAPTIVE"
+      }
+    }
+  ],
+  "viewer": {
+    "pointBudget": 5000000,
+    "fov": 60,
+    "edl": true,
+    "controls": "earth",
+    "classificationScheme": null,
+    "language": "en",
+    "openMenus": [
+      "tools",
+      "scene",
+      "filters"
+    ],
+    "sidebar": true,
+    "description": ""
+  },
+  "view": null,
+  "images360": null,
+  "vectors": [
+    {
+      "name": "Demo vectors",
+      "url": "vectors/demo_vector.gpkg",
+      "crs": null,
+      "visible": true
+    }
+  ],
+  "meshes": []
+}

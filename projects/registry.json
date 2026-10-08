@@ -1,0 +1,261 @@
+{
+  "generatedAt": "2026-10-08T09:16:15.197Z",
+  "projects": [
+    {
+      "id": "arolla",
+      "title": "Arolla — power line, ground truth & prediction",
+      "description": "Drone LiDAR tile t1z4 of a high-voltage power line near Arolla with two classifications of the same points: the ground truth (shown) and the model prediction — tick \"Prediction\" under Point clouds in the scene tree to compare. The ground-truth 3D annotations (t1z4_gt) are shown; the predicted 3D power-line components (pylons, pylon top/base, conductors, ground wires, insulators, fixation points) are listed as a hidden vector layer. Coordinates are local (centred on the tile).",
+      "keywords": [
+        "Drone LiDAR",
+        "GridNet-HD classes",
+        "3D vectors"
+      ],
+      "location": "Arolla, VS",
+      "date": null,
+      "source": null,
+      "url": "arolla/index.html",
+      "preview": "arolla/preview.jpg?v=1791412375968",
+      "crs": "local",
+      "custom": false,
+      "updatedAt": "2026-10-07T19:54:04Z",
+      "notes": null,
+      "stats": {
+        "points": 17754523,
+        "pointclouds": 2,
+        "images360": null,
+        "labelSets": [],
+        "vectors": 2,
+        "meshes": 0
+      }
+    },
+    {
+      "id": "autoinspect",
+      "title": "AutoInspect — power-line drone inspection",
+      "description": "Custom inspection viewer for a drone LiDAR survey of a high-voltage line in Valais (50.6 million points, UTM 32N). Toggle automatic-classification layers (pylons, cables, insulators, vegetation, water, buildings, ground types), browse 103 oriented DJI photos placed at their camera poses, and play the scripted camera flight.",
+      "keywords": [
+        "Drone LiDAR",
+        "Oriented images"
+      ],
+      "location": "Valais",
+      "date": "2024-07-04",
+      "source": "INSIT / HEIG-VD",
+      "url": "autoinspect/index.html",
+      "preview": "autoinspect/preview.jpg?v=1791385293903",
+      "crs": "EPSG:32632",
+      "custom": true,
+      "updatedAt": "2026-10-07T18:20:14Z",
+      "notes": "Hand-written page with its own bundled libs/ (older Potree build). Class sub-clouds live in pointclouds/classes/, oriented photos in images/.",
+      "stats": {
+        "points": 50632795,
+        "pointclouds": 1,
+        "images360": null,
+        "labelSets": [],
+        "vectors": 0,
+        "meshes": 0
+      }
+    },
+    {
+      "id": "grandson",
+      "title": "Grandson — power line, ground truth & prediction",
+      "description": "Drone LiDAR tile t3z1 of a high-voltage power line near Grandson with two classifications: the ground truth (shown) and the model prediction — tick \"Prediction\" under Point clouds in the scene tree to compare. Vector layers: the manual ground-truth annotation (t3z1_gt, shown), its RANSAC-fitted version and the predicted 3D components (t3z1_pred), both hidden by default. Coordinates are local.",
+      "keywords": [
+        "Drone LiDAR",
+        "GridNet-HD classes",
+        "3D vectors"
+      ],
+      "location": "Grandson, VD",
+      "date": null,
+      "source": null,
+      "url": "grandson/index.html",
+      "preview": "grandson/preview.jpg?v=1791399302843",
+      "crs": "local",
+      "custom": false,
+      "updatedAt": "2026-10-07T19:54:04Z",
+      "notes": null,
+      "stats": {
+        "points": 16658165,
+        "pointclouds": 2,
+        "images360": null,
+        "labelSets": [],
+        "vectors": 3,
+        "meshes": 0
+      }
+    },
+    {
+      "id": "neuchatel",
+      "title": "Neuchâtel — mobile LiDAR & 360° panoramas",
+      "description": "Mobile LiDAR survey of Neuchâtel streets with 2,337 panoramas (8000×4000). Each panorama comes with a semantic segmentation predicted by a model (Cityscapes palette), which can be shown over the image in the 360° view. Points carry image-derived predictions (img_label, img_pred, spt_pred, grouped_class) next to the LAS classification.",
+      "keywords": [
+        "Mobile LiDAR",
+        "360° panoramas",
+        "Cityscapes segmentation"
+      ],
+      "location": "Neuchâtel, NE",
+      "date": null,
+      "source": "ORBIS360 SA",
+      "url": "neuchatel/index.html",
+      "preview": "neuchatel/preview.jpg?v=1791386842436",
+      "crs": "EPSG:2056",
+      "custom": false,
+      "updatedAt": "2026-10-08T09:06:53Z",
+      "notes": null,
+      "stats": {
+        "points": 392185710,
+        "pointclouds": 1,
+        "images360": 2337,
+        "labelSets": [
+          "Cityscapes"
+        ],
+        "vectors": 0,
+        "meshes": 0
+      }
+    },
+    {
+      "id": "streetview-ne",
+      "title": "Neuchâtel canton — street view & manhole covers",
+      "description": "Large mobile LiDAR acquisition of the Neuchâtel road network (5.2 billion points) with 10,838 street-level panoramas (8000×4000) and ground-truth 3D manhole covers (NE_GT_3D).",
+      "keywords": [
+        "Mobile LiDAR",
+        "360° panoramas",
+        "Manhole covers"
+      ],
+      "location": "Canton of Neuchâtel",
+      "date": "2020-04",
+      "source": null,
+      "url": "streetview-ne/index.html",
+      "preview": "streetview-ne/preview.jpg?v=1791386866112",
+      "crs": "EPSG:2056",
+      "custom": false,
+      "updatedAt": "2026-10-07T18:20:14Z",
+      "notes": null,
+      "stats": {
+        "points": 5232490699,
+        "pointclouds": 1,
+        "images360": 10838,
+        "labelSets": [],
+        "vectors": 1,
+        "meshes": 0
+      }
+    },
+    {
+      "id": "ollon-idw",
+      "title": "Ollon — retaining wall detection",
+      "description": "Mobile LiDAR survey of Ollon (1.7 billion points) for retaining wall detection: the detected walls are drawn as 3D top- and bottom-edge polygons. Points carry the panoramas' segmentation predictions transferred to the point cloud by inverse-distance weighting (img_label, Cityscapes palette). The 6,173 panoramas (13504×6752) offer two switchable segmentation predictions: Cityscapes and its SAM-refined version.",
+      "keywords": [
+        "Mobile LiDAR",
+        "360° panoramas",
+        "Cityscapes segmentation",
+        "SAM",
+        "Retaining walls"
+      ],
+      "location": "Ollon, VD",
+      "date": null,
+      "source": "ORBIS360 SA",
+      "url": "ollon-idw/index.html",
+      "preview": "ollon-idw/preview.jpg?v=1791386853640",
+      "crs": "EPSG:2056",
+      "custom": false,
+      "updatedAt": "2026-10-08T09:06:53Z",
+      "notes": null,
+      "stats": {
+        "points": 1697930008,
+        "pointclouds": 1,
+        "images360": 6173,
+        "labelSets": [
+          "Cityscapes",
+          "Cityscapes + SAM"
+        ],
+        "vectors": 1,
+        "meshes": 0
+      }
+    },
+    {
+      "id": "valais",
+      "title": "Valais — power line demo",
+      "description": "Drone LiDAR tile of a power line in Valais (71 million points, UTM 32N) in true colour, with demo 3D vector annotations of pylons, conductors, ground wires and insulators.",
+      "keywords": [
+        "Drone LiDAR",
+        "3D vectors",
+        "UTM 32N"
+      ],
+      "location": "Valais",
+      "date": null,
+      "source": null,
+      "url": "valais/index.html",
+      "preview": "valais/preview.jpg?v=1791386753223",
+      "crs": "EPSG:32632",
+      "custom": false,
+      "updatedAt": "2026-10-07T18:20:14Z",
+      "notes": null,
+      "stats": {
+        "points": 71040345,
+        "pointclouds": 1,
+        "images360": null,
+        "labelSets": [],
+        "vectors": 1,
+        "meshes": 0
+      }
+    },
+    {
+      "id": "vevey",
+      "title": "Vevey — mobile LiDAR, panoramas & SAM3 detections",
+      "description": "Mobile LiDAR survey of Vevey (3.3 billion points) with 14,209 panoramas (8000×4000) and Cityscapes labels. SAM3 zero-shot detections of bike lanes and road markings, localised on the LiDAR, are listed as vector layers that load on demand when ticked in the scene tree. Opens on the detection area of interest.",
+      "keywords": [
+        "Mobile LiDAR",
+        "360° panoramas",
+        "Cityscapes segmentation",
+        "SAM",
+        "Bike lanes",
+        "Road markings"
+      ],
+      "location": "Vevey, VD",
+      "date": null,
+      "source": "ORBIS360 SA",
+      "url": "vevey/index.html",
+      "preview": "vevey/preview.jpg?v=1791386759126",
+      "crs": "EPSG:2056",
+      "custom": false,
+      "updatedAt": "2026-10-08T09:06:53Z",
+      "notes": null,
+      "stats": {
+        "points": 3291513388,
+        "pointclouds": 1,
+        "images360": 14209,
+        "labelSets": [
+          "Cityscapes"
+        ],
+        "vectors": 70,
+        "meshes": 0
+      }
+    },
+    {
+      "id": "neocapture-voiteur",
+      "title": "Voiteur — NeoCapture mobile mapping",
+      "description": "Trimble MX50 mobile-mapping acquisition (NeoCapture, 10 Dec 2025) at Voiteur in Lambert-93: 835 million points and 3,144 panoramas (8192×4096), with the optimised 3D road signs (circular and rectangular), the 3D road markings and the road-surface mesh.",
+      "keywords": [
+        "Mobile LiDAR",
+        "Trimble MX50",
+        "360° panoramas",
+        "Road markings",
+        "Lambert-93"
+      ],
+      "location": "Voiteur, Jura (FR)",
+      "date": "2025-12-10",
+      "source": "NeoCapture",
+      "url": "neocapture-voiteur/index.html",
+      "preview": "neocapture-voiteur/preview.jpg?v=1791447940419",
+      "crs": "EPSG:2154",
+      "custom": false,
+      "updatedAt": "2026-10-08T09:16:14Z",
+      "notes": null,
+      "stats": {
+        "points": 835118491,
+        "pointclouds": 1,
+        "images360": 3294,
+        "labelSets": [],
+        "vectors": 2,
+        "meshes": 1
+      }
+    }
+  ]
+}

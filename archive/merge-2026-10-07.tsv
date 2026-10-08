@@ -1,0 +1,15 @@
+projects/arolla-prediction/pointcloud	projects/arolla/pointcloud-prediction
+projects/arolla-prediction/vectors/t1z4_predict.gpkg	projects/arolla/vectors/t1z4_predict.gpkg
+projects/arolla-prediction/vectors/t1z4_gt.gpkg	archive/merged-projects/arolla-prediction/vectors/t1z4_gt.gpkg
+projects/arolla-prediction/project.json	archive/merged-projects/arolla-prediction/project.json
+projects/arolla-prediction/index.html	archive/merged-projects/arolla-prediction/index.html
+projects/arolla-prediction/preview.jpg	archive/merged-projects/arolla-prediction/preview.jpg
+projects/grandson-prediction/pointcloud	projects/grandson/pointcloud-prediction
+projects/grandson-prediction/vectors/t3z1_pred.gpkg	projects/grandson/vectors/t3z1_pred.gpkg
+projects/grandson-prediction/project.json	archive/merged-projects/grandson-prediction/project.json
+projects/grandson-prediction/index.html	archive/merged-projects/grandson-prediction/index.html
+projects/grandson-prediction/preview.jpg	archive/merged-projects/grandson-prediction/preview.jpg
+projects/arolla/pointcloud	projects/arolla/.swap-tmp
+projects/arolla/pointcloud-prediction	projects/arolla/pointcloud
+projects/arolla/.swap-tmp	projects/arolla/pointcloud-prediction
+(note)	arolla: GT = attribute slot 10 (description "GT", has class 11 'ignored'); the former Arolla folder showed the prediction as classification, so pointcloud/ and pointcloud-prediction/ were swapped

@@ -2,6 +2,7 @@
 /test
 /test1
 /360
+/pointclouds
 node_modules
 docs/.marking_your_own_pointcloud_loader.md.html
 docs/.file_format.md.html
@@ -31,3 +32,20 @@ libs/CesiumUnminified
 /pointclouds/morro_bay_converted
 /pointclouds/helimap_epalinges
 pointclouds/F
+
+# Private project data (projects/<id>/...): only pages, manifests, previews and the
+# portal/shared code are meant for version control — never the (very large) data.
+/projects/*/pointcloud/
+/projects/*/pointcloud-*/
+/projects/*/pointclouds/
+/projects/*/images360
+/projects/*/images/
+/projects/*/labels/
+/projects/*/vectors/
+/projects/*/extras/
+/projects/*/libs/
+/projects/.staging/
+/projects/.jobs/
+/projects/zz-test-*/
+/archive/legacy-pages/
+/archive/**/*.gpkg

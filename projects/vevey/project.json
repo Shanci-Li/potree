@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "vevey",
+  "title": "Vevey — mobile LiDAR, panoramas & SAM3 detections",
+  "description": "Mobile LiDAR survey of Vevey (3.3 billion points) with 14,209 panoramas (8000×4000) and Cityscapes labels. SAM3 zero-shot detections of bike lanes and road markings, localised on the LiDAR, are listed as vector layers that load on demand when ticked in the scene tree. Opens on the detection area of interest.",
+  "keywords": [
+    "Mobile LiDAR",
+    "360° panoramas",
+    "Cityscapes segmentation",
+    "SAM",
+    "Bike lanes",
+    "Road markings"
+  ],
+  "location": "Vevey, VD",
+  "date": null,
+  "source": "ORBIS360 SA",
+  "createdAt": "2026-10-07T14:08:00Z",
+  "updatedAt": "2026-10-08T09:06:53Z",
+  "entry": "index.html",
+  "preview": "preview.jpg",
+  "custom": false,
+  "crs": "EPSG:2056",
+  "pointclouds": [
+    {
+      "name": "vevey",
+      "url": "pointcloud/metadata.json",
+      "material": {
+        "activeAttribute": "rgba",
+        "size": 0.5,
+        "minSize": 2.0,
+        "pointSizeType": "ADAPTIVE",
+        "shape": "SQUARE",
+        "ranges": {
+          "img_label": [
+            0,
+            19
+          ],
+          "grouped_class": [
+            0,
+            4
+          ]
+        },
+        "gradients": {
+          "img_label": "CITYSCAPE"
+        }
+      }
+    }
+  ],
+  "viewer": {
+    "pointBudget": 2000000,
+    "fov": 60,
+    "edl": true,
+    "controls": "earth",
+    "classificationScheme": "MAGIC3D",
+    "language": "en",
+    "openMenus": [
+      "appearance"
+    ],
+    "sidebar": true,
+    "description": "Mobile LiDAR with 360&deg; image overlays. Click on a sphere to enter the 360 view, use the buttons at the bottom right to switch between image and labels, and click \"unfocus\" to leave. <br>Point cloud courtesy of <a href=\"https://orbis360.ch/en/\" target=\"_blank\">ORBIS360 SA</a>. Image size is 8000×4000."
+  },
+  "view": {
+    "position": [
+      2554106,
+      1145270,
+      640
+    ],
+    "target": [
+      2554106,
+      1145603,
+      375
+    ]
+  },
+  "images360": {
+    "url": "images360",
+    "coordinatesFile": "coordinates.txt",
+    "crs": null,
+    "labelSets": [
+      {
+        "id": "cityscape",
+        "name": "Cityscapes",
+        "url": "labels/cityscape"
+      }
+    ]
+  },
+  "vectors": [
+    {
+      "name": "SAM3 detections",
+      "manifest": "vectors/detections/layers.json",
+      "crs": null,
+      "lazy": true
+    }
+  ],
+  "meshes": []
+}

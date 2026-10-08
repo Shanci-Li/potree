@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "id": "ollon-idw",
+  "title": "Ollon — retaining wall detection",
+  "description": "Mobile LiDAR survey of Ollon (1.7 billion points) for retaining wall detection: the detected walls are drawn as 3D top- and bottom-edge polygons. Points carry the panoramas' segmentation predictions transferred to the point cloud by inverse-distance weighting (img_label, Cityscapes palette). The 6,173 panoramas (13504×6752) offer two switchable segmentation predictions: Cityscapes and its SAM-refined version.",
+  "keywords": [
+    "Mobile LiDAR",
+    "360° panoramas",
+    "Cityscapes segmentation",
+    "SAM",
+    "Retaining walls"
+  ],
+  "location": "Ollon, VD",
+  "date": null,
+  "source": "ORBIS360 SA",
+  "createdAt": "2026-10-07T14:08:00Z",
+  "updatedAt": "2026-10-08T09:06:53Z",
+  "entry": "index.html",
+  "preview": "preview.jpg",
+  "custom": false,
+  "crs": "EPSG:2056",
+  "pointclouds": [
+    {
+      "name": "ollon",
+      "url": "pointcloud/metadata.json",
+      "material": {
+        "activeAttribute": "img_label",
+        "gradient": "CITYSCAPE",
+        "size": 0.5,
+        "minSize": 2.0,
+        "pointSizeType": "ADAPTIVE",
+        "shape": "SQUARE",
+        "ranges": {
+          "img_label": [
+            0,
+            19
+          ],
+          "grouped_class": [
+            0,
+            4
+          ]
+        },
+        "gradients": {
+          "img_label": "CITYSCAPE"
+        }
+      }
+    }
+  ],
+  "viewer": {
+    "pointBudget": 2000000,
+    "fov": 60,
+    "edl": true,
+    "controls": "earth",
+    "classificationScheme": "MAGIC3D",
+    "language": "en",
+    "openMenus": [
+      "appearance"
+    ],
+    "sidebar": true,
+    "description": "Mobile LiDAR with 360&deg; image overlays. Click on a sphere to enter the 360 view, use the buttons at the bottom right to switch between image and labels, and click \"unfocus\" to leave. <br>Point cloud courtesy of <a href=\"https://orbis360.ch/en/\" target=\"_blank\">ORBIS360 SA</a>. Image size is 13504×6752."
+  },
+  "view": null,
+  "images360": {
+    "url": "images360",
+    "coordinatesFile": "coordinates.txt",
+    "crs": null,
+    "labelSets": [
+      {
+        "id": "cityscape",
+        "name": "Cityscapes",
+        "url": "labels/cityscape"
+      },
+      {
+        "id": "sam",
+        "name": "Cityscapes + SAM",
+        "url": "labels/sam"
+      }
+    ]
+  },
+  "vectors": [
+    {
+      "name": "Retaining walls",
+      "url": "vectors/wall_polygons.gpkg",
+      "crs": null,
+      "visible": true
+    }
+  ],
+  "meshes": [],
+  "previewView": {
+    "position": [
+      2568236.6,
+      1123787.9,
+      752.4
+    ],
+    "target": [
+      2568236.6,
+      1124027.9,
+      572.4
+    ]
+  }
+}

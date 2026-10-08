@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "grandson-prediction",
+  "title": "Grandson — power line, predictions",
+  "description": "The Grandson tile (t3z1) coloured by the predicted classification, with the predicted 3D power-line components (t3z1_pred.gpkg). Coordinates are local.",
+  "keywords": [
+    "Power line",
+    "Drone LiDAR",
+    "Prediction",
+    "AI3D classes",
+    "3D vectors"
+  ],
+  "location": "Grandson, VD",
+  "date": null,
+  "source": null,
+  "createdAt": "2026-10-07T14:08:00Z",
+  "updatedAt": "2026-10-07T14:10:41Z",
+  "entry": "index.html",
+  "preview": "preview.jpg",
+  "custom": false,
+  "crs": "local",
+  "pointclouds": [
+    {
+      "name": "Grandson",
+      "url": "pointcloud/metadata.json",
+      "material": {
+        "activeAttribute": "classification",
+        "size": 0.7,
+        "pointSizeType": "FIXED"
+      }
+    }
+  ],
+  "viewer": {
+    "pointBudget": 5000000,
+    "fov": 60,
+    "edl": true,
+    "controls": "earth",
+    "classificationScheme": "AI3D",
+    "language": "en",
+    "openMenus": [
+      "tools",
+      "scene",
+      "filters"
+    ],
+    "sidebar": true,
+    "description": ""
+  },
+  "view": null,
+  "images360": null,
+  "vectors": [
+    {
+      "name": "Predictions (t3z1_pred)",
+      "url": "vectors/t3z1_pred.gpkg",
+      "crs": null,
+      "visible": true
+    }
+  ],
+  "meshes": []
+}

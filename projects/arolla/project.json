@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "id": "arolla",
+  "title": "Arolla — power line, ground truth & prediction",
+  "description": "Drone LiDAR tile t1z4 of a high-voltage power line near Arolla with two classifications of the same points: the ground truth (shown) and the model prediction — tick \"Prediction\" under Point clouds in the scene tree to compare. The ground-truth 3D annotations (t1z4_gt) are shown; the predicted 3D power-line components (pylons, pylon top/base, conductors, ground wires, insulators, fixation points) are listed as a hidden vector layer. Coordinates are local (centred on the tile).",
+  "keywords": [
+    "Drone LiDAR",
+    "GridNet-HD classes",
+    "3D vectors"
+  ],
+  "location": "Arolla, VS",
+  "date": null,
+  "source": null,
+  "createdAt": "2026-10-07T14:08:00Z",
+  "updatedAt": "2026-10-07T19:54:04Z",
+  "entry": "index.html",
+  "preview": "preview.jpg",
+  "custom": false,
+  "crs": "local",
+  "pointclouds": [
+    {
+      "name": "Ground truth",
+      "url": "pointcloud/metadata.json",
+      "material": {
+        "activeAttribute": "classification",
+        "size": 0.7,
+        "pointSizeType": "ADAPTIVE"
+      }
+    },
+    {
+      "name": "Prediction",
+      "url": "pointcloud-prediction/metadata.json",
+      "visible": false,
+      "material": {
+        "activeAttribute": "classification",
+        "size": 0.7,
+        "pointSizeType": "ADAPTIVE"
+      }
+    }
+  ],
+  "viewer": {
+    "pointBudget": 5000000,
+    "fov": 60,
+    "edl": true,
+    "controls": "earth",
+    "classificationScheme": "AI3D",
+    "language": "en",
+    "openMenus": [
+      "tools",
+      "scene",
+      "filters"
+    ],
+    "sidebar": true,
+    "description": ""
+  },
+  "view": null,
+  "images360": null,
+  "vectors": [
+    {
+      "name": "GT",
+      "url": "vectors/t1z4_gt.gpkg",
+      "crs": null,
+      "visible": true
+    },
+    {
+      "name": "Prediction",
+      "url": "vectors/t1z4_predict.gpkg",
+      "crs": null,
+      "visible": false
+    }
+  ],
+  "meshes": []
+}
